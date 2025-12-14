@@ -66,10 +66,17 @@ static GLfloat wheelRotationAngle = 0.0f;
 static GLfloat steeringAngle = 0.0f;
 static const GLfloat maxSteeringAngle = 25.0f;
 static const GLfloat steeringSpeed = 5.0f;
+
+static GLfloat currentWheelSpeed = 0.0f;
+static const GLfloat maxWheelSpeed = 8.0f;
+static const GLfloat accelerationRate = 0.1f;
+static const GLfloat decelerationRate = 0.2f;
 // --- End New Movement Variables ---
 
 static BOOL keyA_held = FALSE;
 static BOOL keyD_held = FALSE;
+static BOOL keyW_held = FALSE;
+static BOOL keyS_held = FALSE;
 
 // Opis tekstury
 BITMAPINFOHEADER	bitmapInfoHeader;	// nag��wek obrazu
@@ -795,6 +802,44 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	{
 		BOOL changed = FALSE;
 
+		if (keyW_held) {
+			currentWheelSpeed -= accelerationRate;
+			if (currentWheelSpeed < -maxWheelSpeed) {
+				currentWheelSpeed = -maxWheelSpeed;
+			}
+			changed = TRUE;
+		}
+		else if (keyS_held) {
+			currentWheelSpeed += accelerationRate;
+			if (currentWheelSpeed > maxWheelSpeed) {
+				currentWheelSpeed = maxWheelSpeed;
+			}
+			changed = TRUE;
+		}
+		else {
+			if (fabs(currentWheelSpeed) > 0.05f) {
+				if (currentWheelSpeed > 0) {
+					currentWheelSpeed -= decelerationRate;
+					if (currentWheelSpeed < 0.0f) currentWheelSpeed = 0.0f;
+				}
+				else {
+					currentWheelSpeed += decelerationRate;
+					if (currentWheelSpeed > 0.0f) currentWheelSpeed = 0.0f;
+				}
+				changed = TRUE;
+			}
+			else if (currentWheelSpeed != 0.0f) {
+				currentWheelSpeed = 0.0f;
+				changed = TRUE;
+			}
+		}
+
+		if (currentWheelSpeed != 0.0f) {
+			wheelRotationAngle += currentWheelSpeed;
+			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
+			changed = TRUE;
+		}
+
 		if (keyA_held) {
 			steeringAngle -= steeringSpeed * 0.1f;
 			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
@@ -835,17 +880,17 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		BOOL changed = FALSE;
 		GLfloat rotationSpeed = 10.0f;
 
-		// W: Rotate Wheels Forward (Simulated Drive Forward)
+		// W: Rotate Wheels Forward
 		if (wParam == 'W' || wParam == 'w') {
-			wheelRotationAngle -= rotationSpeed; // Decrement for forward look (rotation around Z)
-			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
+			keyW_held = TRUE;
+			keyS_held = FALSE;
 			changed = TRUE;
 		}
 
-		// S: Rotate Wheels Backward (Simulated Drive Backward)
+		// S: Rotate Wheels Backward
 		if (wParam == 'S' || wParam == 's') {
-			wheelRotationAngle += rotationSpeed; // Increment for backward look (rotation around Z)
-			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
+			keyS_held = TRUE;
+			keyW_held = FALSE;
 			changed = TRUE;
 		}
 
@@ -897,6 +942,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		}
 		if (wParam == 'D' || wParam == 'd') {
 			keyD_held = FALSE;
+		}
+		if (wParam == 'W' || wParam == 'w') {
+			keyW_held = FALSE;
+		}
+		if (wParam == 'S' || wParam == 's') {
+			keyS_held = FALSE;
 		}
 	}
 	break;
