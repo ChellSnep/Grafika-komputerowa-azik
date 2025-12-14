@@ -61,6 +61,16 @@ static BOOL isRotating = FALSE;
 static BOOL isPanning = FALSE;
 // --- End New Camera Variables ---
 
+// --- New Movement Variables ---
+static GLfloat wheelRotationAngle = 0.0f;
+static GLfloat steeringAngle = 0.0f;
+static const GLfloat maxSteeringAngle = 25.0f;
+static const GLfloat steeringSpeed = 5.0f;
+// --- End New Movement Variables ---
+
+static BOOL keyA_held = FALSE;
+static BOOL keyD_held = FALSE;
+
 // Opis tekstury
 BITMAPINFOHEADER	bitmapInfoHeader;	// nag��wek obrazu
 unsigned char* bitmapData = NULL;			// dane tekstury
@@ -401,37 +411,49 @@ void kulaDuza(void)
 
 
 void Maszyna() {
+	// --- Głównie ciało + kabina --- 
 	glPushMatrix();
 	glTranslatef(0.0f, 0.0f, 0.0f);
-	glTranslatef(25.0f, 37.5f, -7.0f); // przesuni�cie w lewo
+	glTranslatef(25.0f, 37.5f, -7.0f);
 	body();
 	glPopMatrix();
 
 	glPushMatrix();
 	glTranslatef(0.0f, 0.0f, 0.0f);
-	glTranslatef(25.0f, 82.5f, -37.0f); // przesuni�cie w lewo
+	glTranslatef(25.0f, 82.5f, -37.0f);
 	kabina();
 	glPopMatrix();
+	// --- Głównie ciało + kabina --- 
 
+	// --- Przednie koła --
 	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f); // Center for reference
+	glTranslatef(0.0f, 0.0f, 0.0f);
+	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
 	kula();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(50.0f, 0.0f, 0.0f); // przesuni�cie w lewo
+	glTranslatef(50.0f, 0.0f, 0.0f);
+	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
 	kula();
 	glPopMatrix();
+	// --- Przednie koła --
 
+	// --- Tylnie koła ---
 	glPushMatrix();
-	glTranslatef(0.0f, 75.0f, -5.0f); // przesuni�cie w lewo
+	glTranslatef(0.0f, 75.0f, -5.0f);
+	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
 	kulaDuza();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(50.0f, 75.0f, -5.0f); // przesuni�cie w lewo
+	glTranslatef(50.0f, 75.0f, -5.0f);
+	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
 	kulaDuza();
 	glPopMatrix();
+	// --- Tylnie koła ---
 }
 
 void RenderScene(void)
@@ -708,10 +730,13 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 		// ustalenie sposobu mieszania tekstury z t�em
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+		SetTimer(hWnd, 1, 10, NULL);
 		break;
 
 		// Window is being destroyed, cleanup
 	case WM_DESTROY:
+		KillTimer(hWnd, 1);
 		// Deselect the current rendering context and delete it
 		wglMakeCurrent(hDC, NULL);
 		wglDeleteContext(hRC);
@@ -766,22 +791,75 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		}
 		break;
 
+	case WM_TIMER:
+	{
+		BOOL changed = FALSE;
+
+		if (keyA_held) {
+			steeringAngle -= steeringSpeed * 0.1f;
+			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
+			changed = TRUE;
+		}
+		else if (keyD_held) {
+			steeringAngle += steeringSpeed * 0.1f;
+			if (steeringAngle > maxSteeringAngle) steeringAngle = maxSteeringAngle;
+			changed = TRUE;
+		}
+		else {
+			if (fabs(steeringAngle) > 0.5f) {
+				if (steeringAngle > 0) {
+					steeringAngle -= steeringSpeed * 0.15f;
+					if (steeringAngle < 0.0f) steeringAngle = 0.0f;
+				}
+				else {
+					steeringAngle += steeringSpeed * 0.15f;
+					if (steeringAngle > 0.0f) steeringAngle = 0.0f;
+				}
+				changed = TRUE;
+			}
+			else if (steeringAngle != 0.0f) {
+				steeringAngle = 0.0f;
+				changed = TRUE;
+			}
+		}
+
+		if (changed) {
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+	}
+	break;
+
 	// Key press, check for arrow keys to do cube rotation.
 	case WM_KEYDOWN:
 	{
 		BOOL changed = FALSE;
+		GLfloat rotationSpeed = 10.0f;
 
-		// W: Zoom In
+		// W: Rotate Wheels Forward (Simulated Drive Forward)
 		if (wParam == 'W' || wParam == 'w') {
-			cameraDistance -= 10.0f;
-			if (cameraDistance < 20.0f) cameraDistance = 20.0f; // Limit minimum distance
+			wheelRotationAngle -= rotationSpeed; // Decrement for forward look (rotation around Z)
+			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
 			changed = TRUE;
 		}
 
-		// S: Zoom Out
+		// S: Rotate Wheels Backward (Simulated Drive Backward)
 		if (wParam == 'S' || wParam == 's') {
-			cameraDistance += 10.0f;
-			if (cameraDistance > 500.0f) cameraDistance = 500.0f; // Limit maximum distance
+			wheelRotationAngle += rotationSpeed; // Increment for backward look (rotation around Z)
+			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
+			changed = TRUE;
+		}
+
+		// A: Turn Left (Steering)
+		if (wParam == 'A' || wParam == 'a') {
+			keyA_held = TRUE;
+			keyD_held = FALSE; // Ensure only one is pressed
+			changed = TRUE;
+		}
+
+		// D: Turn Right (Steering)
+		if (wParam == 'D' || wParam == 'd') {
+			keyD_held = TRUE;
+			keyA_held = FALSE; // Ensure only one is pressed
 			changed = TRUE;
 		}
 
@@ -808,6 +886,17 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 		if (changed) {
 			InvalidateRect(hWnd, NULL, FALSE);
+		}
+	}
+	break;
+
+	case WM_KEYUP:
+	{
+		if (wParam == 'A' || wParam == 'a') {
+			keyA_held = FALSE;
+		}
+		if (wParam == 'D' || wParam == 'd') {
+			keyD_held = FALSE;
 		}
 	}
 	break;
