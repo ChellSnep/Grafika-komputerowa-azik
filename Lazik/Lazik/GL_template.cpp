@@ -384,7 +384,7 @@ void kula(void)
 		glColor3f(0.1f, 0.1f, 0.1f);
 
 		gluQuadricTexture(obj, GL_TRUE);
-		glBindTexture(GL_TEXTURE_2D, texture[0]);
+		glBindTexture(GL_TEXTURE_2D, texture[1]);
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 		glEnable(GL_TEXTURE_2D);
@@ -405,7 +405,7 @@ void kulaDuza(void)
 		glColor3f(0.1f, 0.1f, 0.1f);
 
 		gluQuadricTexture(obj, GL_TRUE);
-		glBindTexture(GL_TEXTURE_2D, texture[0]);
+		glBindTexture(GL_TEXTURE_2D, texture[1]);
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 		glEnable(GL_TEXTURE_2D);
@@ -718,6 +718,7 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			bitmapData = NULL;
 		}
 				
+		bitmapData = LoadBitmapFile("wheels.bmp", &bitmapInfoHeader);
 		if (bitmapData != NULL) {
 			glBindTexture(GL_TEXTURE_2D, texture[1]);   // activate texture object
 
