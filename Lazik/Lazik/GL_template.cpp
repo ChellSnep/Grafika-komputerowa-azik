@@ -71,6 +71,8 @@ static GLfloat currentWheelSpeed = 0.0f;
 static const GLfloat maxWheelSpeed = 8.0f;
 static const GLfloat accelerationRate = 0.1f;
 static const GLfloat decelerationRate = 0.2f;
+
+static GLfloat decorationRotationAngle = 0.0f;
 // --- End New Movement Variables ---
 
 static BOOL keyA_held = FALSE;
@@ -254,213 +256,418 @@ unsigned char* LoadBitmapFile(const char* filename, BITMAPINFOHEADER* bitmapInfo
 	return bitmapImage;
 }
 
-void kabina(void) {
+//void kabina(void) {
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//	{
+//		GLfloat x2 = 24.5f;
+//		GLfloat y2 = 25.0f;
+//		GLfloat z2 = 25.0f;
+//
+//		glColor3f(1.0f, 0.0f, 0.0f);
+//
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x2, -y2, z2);
+//		glVertex3f(x2, -y2, z2);
+//		glVertex3f(-x2, y2, z2);
+//		glVertex3f(x2, y2, z2);
+//		glEnd();
+//
+//		// --- TYŁ (Back) ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x2, -y2, -z2);
+//		glVertex3f(x2, -y2, -z2);
+//		glVertex3f(-x2, y2, -z2);
+//		glVertex3f(x2, y2, -z2);
+//		glEnd();
+//
+//		// --- LEWA (Left) ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x2, -y2, -z2);
+//		glVertex3f(-x2, -y2, z2);
+//		glVertex3f(-x2, y2, -z2);
+//		glVertex3f(-x2, y2, z2);
+//		glEnd();
+//
+//		// --- PRAWA (Right) ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(x2, -y2, -z2);
+//		glVertex3f(x2, -y2, z2);
+//		glVertex3f(x2, y2, -z2);
+//		glVertex3f(x2, y2, z2);
+//		glEnd();
+//
+//		// --- DÓŁ (Bottom) ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x2, -y2, -z2);
+//		glVertex3f(x2, -y2, -z2);
+//		glVertex3f(-x2, -y2, z2);
+//		glVertex3f(x2, -y2, z2);
+//		glEnd();
+//
+//		// --- GÓRA (Top) ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x2, y2, -z2);
+//		glVertex3f(x2, y2, -z2);
+//		glVertex3f(-x2, y2, z2);
+//		glVertex3f(x2, y2, z2);
+//		glEnd();
+//	}
+//}
+//
+//void body(void)
+//{
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//	{
+//		GLfloat x1 = 25.0f;
+//		GLfloat y1 = 70.0f;
+//		GLfloat z1 = 15.0f;
+//
+//		glColor3f(0.0f, 1.0f, 0.0f);
+//
+//
+//		// --- PRZ�D ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x1, -y1, z1);
+//		glVertex3f(x1, -y1, z1);
+//		glVertex3f(-x1, y1, z1);
+//		glVertex3f(x1, y1, z1);
+//		glEnd();
+//
+//		// --- TY� ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x1, -y1, -z1);
+//		glVertex3f(x1, -y1, -z1);
+//		glVertex3f(-x1, y1, -z1);
+//		glVertex3f(x1, y1, -z1);
+//		glEnd();
+//
+//		// --- LEWA ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x1, -y1, -z1);
+//		glVertex3f(-x1, -y1, z1);
+//		glVertex3f(-x1, y1, -z1);
+//		glVertex3f(-x1, y1, z1);
+//		glEnd();
+//
+//		// --- PRAWA ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(x1, -y1, -z1);
+//		glVertex3f(x1, -y1, z1);
+//		glVertex3f(x1, y1, -z1);
+//		glVertex3f(x1, y1, z1);
+//		glEnd();
+//
+//		// --- Dӣ ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x1, -y1, -z1);
+//		glVertex3f(x1, -y1, -z1);
+//		glVertex3f(-x1, -y1, z1);
+//		glVertex3f(x1, -y1, z1);
+//		glEnd();
+//
+//		// --- G�RA ---
+//		glBegin(GL_TRIANGLE_STRIP);
+//		glVertex3f(-x1, y1, -z1);
+//		glVertex3f(x1, y1, -z1);
+//		glVertex3f(-x1, y1, z1);
+//		glVertex3f(x1, y1, z1);
+//		glEnd();
+//	}
+//
+//}
+//
+//void kula(void)
+//{
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
+//		GLUquadricObj* obj = NULL;
+//		obj = gluNewQuadric();
+//		if (obj == NULL) return;
+//
+//		glColor3f(0.1f, 0.1f, 0.1f);
+//
+//		gluQuadricTexture(obj, GL_TRUE);
+//		glBindTexture(GL_TEXTURE_2D, texture[1]);
+//		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+//
+//		glEnable(GL_TEXTURE_2D);
+//		gluSphere(obj, 15, 10, 7);
+//		glDisable(GL_TEXTURE_2D);
+//
+//		gluDeleteQuadric(obj);
+//	}
+//}
+//
+//void kulaDuza(void)
+//{
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
+//		GLUquadricObj* obj = NULL;
+//		obj = gluNewQuadric();
+//		if (obj == NULL) return;
+//
+//		glColor3f(0.1f, 0.1f, 0.1f);
+//
+//		gluQuadricTexture(obj, GL_TRUE);
+//		glBindTexture(GL_TEXTURE_2D, texture[1]);
+//		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+//
+//		glEnable(GL_TEXTURE_2D);
+//		gluSphere(obj, 20, 12, 7);
+//		glDisable(GL_TEXTURE_2D);
+//
+//		gluDeleteQuadric(obj);
+//	}
+//}
+//
+//
+//void Maszyna() {
+//	// --- Głównie ciało + kabina --- 
+//	glPushMatrix();
+//	glTranslatef(0.0f, 0.0f, 0.0f);
+//	glTranslatef(25.0f, 37.5f, -7.0f);
+//	body();
+//	glPopMatrix();
+//
+//	glPushMatrix();
+//	glTranslatef(0.0f, 0.0f, 0.0f);
+//	glTranslatef(25.0f, 82.5f, -37.0f);
+//	kabina();
+//	glPopMatrix();
+//	// --- Głównie ciało + kabina --- 
+//
+//	// --- Przednie koła --
+//	glPushMatrix();
+//	glTranslatef(0.0f, 0.0f, 0.0f);
+//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+//	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
+//	kula();
+//	glPopMatrix();
+//
+//	glPushMatrix();
+//	glTranslatef(50.0f, 0.0f, 0.0f);
+//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+//	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
+//	kula();
+//	glPopMatrix();
+//	// --- Przednie koła --
+//
+//	// --- Tylnie koła ---
+//	glPushMatrix();
+//	glTranslatef(0.0f, 75.0f, -5.0f);
+//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+//	kulaDuza();
+//	glPopMatrix();
+//
+//	glPushMatrix();
+//	glTranslatef(50.0f, 75.0f, -5.0f);
+//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
+//	kulaDuza();
+//	glPopMatrix();
+//	// --- Tylnie koła ---
+//}
+
+void Spodek(void) {
+	glPushMatrix();
+
+	glDisable(GL_CULL_FACE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	{
-		GLfloat x2 = 24.5f;
-		GLfloat y2 = 25.0f;
-		GLfloat z2 = 25.0f;
+	
+	GLfloat radius = 60.0f;
+	int segments = 64;
 
-		glColor3f(1.0f, 0.0f, 0.0f);
+	glColor3f(0.49019f, 0.49411f, 0.458823f);
 
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x2, -y2, z2);
-		glVertex3f(x2, -y2, z2);
-		glVertex3f(-x2, y2, z2);
-		glVertex3f(x2, y2, z2);
-		glEnd();
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3d(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i <= segments; i++) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
 
-		// --- TYŁ (Back) ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x2, -y2, -z2);
-		glVertex3f(x2, -y2, -z2);
-		glVertex3f(-x2, y2, -z2);
-		glVertex3f(x2, y2, -z2);
-		glEnd();
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
 
-		// --- LEWA (Left) ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x2, -y2, -z2);
-		glVertex3f(-x2, -y2, z2);
-		glVertex3f(-x2, y2, -z2);
-		glVertex3f(-x2, y2, z2);
-		glEnd();
-
-		// --- PRAWA (Right) ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(x2, -y2, -z2);
-		glVertex3f(x2, -y2, z2);
-		glVertex3f(x2, y2, -z2);
-		glVertex3f(x2, y2, z2);
-		glEnd();
-
-		// --- DÓŁ (Bottom) ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x2, -y2, -z2);
-		glVertex3f(x2, -y2, -z2);
-		glVertex3f(-x2, -y2, z2);
-		glVertex3f(x2, -y2, z2);
-		glEnd();
-
-		// --- GÓRA (Top) ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x2, y2, -z2);
-		glVertex3f(x2, y2, -z2);
-		glVertex3f(-x2, y2, z2);
-		glVertex3f(x2, y2, z2);
-		glEnd();
+		glVertex3f(x, 0.0f, z);
 	}
+	glEnd();
 }
 
-void body(void)
-{
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	{
-		GLfloat x1 = 25.0f;
-		GLfloat y1 = 70.0f;
-		GLfloat z1 = 15.0f;
+void Spod(void) {
+	glPushMatrix();
 
-		glColor3f(0.0f, 1.0f, 0.0f);
+	glTranslatef(0.0f, -0.1f, 0.0f);
 
+	GLfloat radius = 65.0f; 
+	GLfloat height = 3.0f; 
+	int segments = 64;      
 
-		// --- PRZ�D ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x1, -y1, z1);
-		glVertex3f(x1, -y1, z1);
-		glVertex3f(-x1, y1, z1);
-		glVertex3f(x1, y1, z1);
-		glEnd();
+	glColor3f(0.35f, 0.35f, 0.35f);
 
-		// --- TY� ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x1, -y1, -z1);
-		glVertex3f(x1, -y1, -z1);
-		glVertex3f(-x1, y1, -z1);
-		glVertex3f(x1, y1, -z1);
-		glEnd();
+	glBegin(GL_QUAD_STRIP);
+	for (int i = 0; i <= segments; i++) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
 
-		// --- LEWA ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x1, -y1, -z1);
-		glVertex3f(-x1, -y1, z1);
-		glVertex3f(-x1, y1, -z1);
-		glVertex3f(-x1, y1, z1);
-		glEnd();
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
 
-		// --- PRAWA ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(x1, -y1, -z1);
-		glVertex3f(x1, -y1, z1);
-		glVertex3f(x1, y1, -z1);
-		glVertex3f(x1, y1, z1);
-		glEnd();
-
-		// --- Dӣ ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x1, -y1, -z1);
-		glVertex3f(x1, -y1, -z1);
-		glVertex3f(-x1, -y1, z1);
-		glVertex3f(x1, -y1, z1);
-		glEnd();
-
-		// --- G�RA ---
-		glBegin(GL_TRIANGLE_STRIP);
-		glVertex3f(-x1, y1, -z1);
-		glVertex3f(x1, y1, -z1);
-		glVertex3f(-x1, y1, z1);
-		glVertex3f(x1, y1, z1);
-		glEnd();
+		glVertex3f(x, 0.0f, z);
+		glVertex3f(x, -height, z);
 	}
+	glEnd();
 
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(0.0f, -height, 0.0f);
+	for (int i = 0; i <= segments; i++) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
+
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
+
+		glVertex3f(x, -height, z);
+	}
+	glEnd();
+
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i <= segments; i++) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
+
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
+
+		glVertex3f(x, 0.0f, z);
+	}
+	glEnd();
+
+	glPopMatrix();
 }
 
-void kula(void)
-{
+void SpodDek(void) {
+	glPushMatrix();
+
+	glTranslatef(0.0f, -1.0f, 0.0f);
+	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
+
+	GLfloat radius = 65.1f;
+	GLfloat height = 1.0f;
+	int segments = 64;
+
+	glColor3f(0.2941176470588235f, 1.0f, 0.4156862745098039f);
+
+	glBegin(GL_QUAD_STRIP);
+	for (int i = 0; i <= segments; i = i + 2) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
+
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
+
+		glVertex3f(x, 0.0f, z);
+		glVertex3f(x, -height, z);
+	}
+	glEnd();
+
+	glPopMatrix();
+}
+
+void SpodDek2(void) {
+	glPushMatrix();
+
+	glTranslatef(0.0f, -1.0f, 0.0f);
+	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
+
+	GLfloat radius = 65.1f;
+	GLfloat height = 1.0f;
+	int segments = 64;
+
+	glColor3f(0.6549019607843137f, 0.0588235294117647f, 1.0f);
+
+	glBegin(GL_QUAD_STRIP);
+	for (int i = 1; i <= segments; i = i + 2) {
+		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
+
+		GLfloat x = radius * cosf(angle);
+		GLfloat z = radius * sinf(angle);
+
+		glVertex3f(x, 0.0f, z);
+		glVertex3f(x, -height, z);
+	}
+	glEnd();
+
+	glPopMatrix();
+}
+
+void Kopula(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
 		GLUquadricObj* obj = NULL;
 		obj = gluNewQuadric();
 		if (obj == NULL) return;
 
-		glColor3f(0.1f, 0.1f, 0.1f);
+		glColor3f(0.5686f, 0.78222f, 0.9882f);
 
 		gluQuadricTexture(obj, GL_TRUE);
 		glBindTexture(GL_TEXTURE_2D, texture[1]);
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 		glEnable(GL_TEXTURE_2D);
-		gluSphere(obj, 15, 10, 7);
-		glDisable(GL_TEXTURE_2D);
 
-		gluDeleteQuadric(obj);
-	}
-}
+		// --- START NEW LOGIC ---
+		glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
-void kulaDuza(void)
-{
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
-		GLUquadricObj* obj = NULL;
-		obj = gluNewQuadric();
-		if (obj == NULL) return;
+		glClipPlane(GL_CLIP_PLANE0, planeEq);
+		glEnable(GL_CLIP_PLANE0);
 
-		glColor3f(0.1f, 0.1f, 0.1f);
-
-		gluQuadricTexture(obj, GL_TRUE);
-		glBindTexture(GL_TEXTURE_2D, texture[1]);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-		glEnable(GL_TEXTURE_2D);
+		// Draw the sphere (half will be invisible)
 		gluSphere(obj, 20, 12, 7);
+
+		glDisable(GL_CLIP_PLANE0);
+		// --- END NEW LOGIC ---
+
 		glDisable(GL_TEXTURE_2D);
 
 		gluDeleteQuadric(obj);
 	}
 }
 
+void Uchwyt(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
+		GLUquadricObj* obj = NULL;
+		obj = gluNewQuadric();
+		if (obj == NULL) return;
 
-void Maszyna() {
-	// --- Głównie ciało + kabina --- 
-	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f);
-	glTranslatef(25.0f, 37.5f, -7.0f);
-	body();
-	glPopMatrix();
+		glColor3f(0.25f, 0.25f, 0.25f);
 
-	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f);
-	glTranslatef(25.0f, 82.5f, -37.0f);
-	kabina();
-	glPopMatrix();
-	// --- Głównie ciało + kabina --- 
+		gluQuadricTexture(obj, GL_TRUE);
+		glBindTexture(GL_TEXTURE_2D, texture[1]);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-	// --- Przednie koła --
-	glPushMatrix();
-	glTranslatef(0.0f, 0.0f, 0.0f);
-	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
-	kula();
-	glPopMatrix();
+		glEnable(GL_TEXTURE_2D);
 
-	glPushMatrix();
-	glTranslatef(50.0f, 0.0f, 0.0f);
-	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
-	kula();
-	glPopMatrix();
-	// --- Przednie koła --
+		// --- START NEW LOGIC ---
+		//glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+		glTranslatef(0.0f, 0.0f, -15.0f);
+		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
-	// --- Tylnie koła ---
-	glPushMatrix();
-	glTranslatef(0.0f, 75.0f, -5.0f);
-	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-	kulaDuza();
-	glPopMatrix();
+		glClipPlane(GL_CLIP_PLANE0, planeEq);
+		glEnable(GL_CLIP_PLANE0);
 
-	glPushMatrix();
-	glTranslatef(50.0f, 75.0f, -5.0f);
-	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-	kulaDuza();
-	glPopMatrix();
-	// --- Tylnie koła ---
+		gluSphere(obj, 24, 14, 9);
+
+		glDisable(GL_CLIP_PLANE0);
+		// --- END NEW LOGIC ---
+
+		glDisable(GL_TEXTURE_2D);
+
+		gluDeleteQuadric(obj);
+	}
+}
+
+void UFO() {
+	Spodek();
+	Spod();
+	SpodDek();
+	SpodDek2();
+
+	Kopula();
+
+	Uchwyt();
 }
 
 void RenderScene(void)
@@ -472,7 +679,6 @@ void RenderScene(void)
 	glLoadIdentity(); // Reset the modelview matrix
 
 	// --- New Camera Setup (View Transformation) ---
-
 	// 1. Zoom (Move the camera back/forward along the view vector)
 	glTranslatef(0.0f, 0.0f, -cameraDistance);
 
@@ -486,7 +692,7 @@ void RenderScene(void)
 
 	glPolygonMode(GL_BACK, GL_LINE);
 
-	Maszyna();
+	UFO();
 
 	glMatrixMode(GL_MODELVIEW);
 	glFlush();
@@ -803,6 +1009,11 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	{
 		BOOL changed = FALSE;
 
+		decorationRotationAngle -= 0.2f;
+		if (decorationRotationAngle <= -360.0f) {
+			decorationRotationAngle += 360.0f;
+		}
+		changed = TRUE;
 		if (keyW_held) {
 			currentWheelSpeed -= accelerationRate;
 			if (currentWheelSpeed < -maxWheelSpeed) {
