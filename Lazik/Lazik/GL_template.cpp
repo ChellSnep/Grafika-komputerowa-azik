@@ -1272,26 +1272,6 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			changed = TRUE;
 		}
 
-		if (wParam == VK_LEFT) {
-			cameraPanX += 5.0f;
-			changed = TRUE;
-		}
-
-		if (wParam == VK_RIGHT) {
-			cameraPanX -= 5.0f;
-			changed = TRUE;
-		}
-
-		if (wParam == VK_UP) {
-			cameraPanY -= 5.0f; // Y-axis is up in screen space, up key should pan "up" in world
-			changed = TRUE;
-		}
-
-		if (wParam == VK_DOWN) {
-			cameraPanY += 5.0f;
-			changed = TRUE;
-		}
-
 		if (wParam == 'R' || wParam == 'r') {
 			isResettingCamera = TRUE;
 			changed = TRUE;
