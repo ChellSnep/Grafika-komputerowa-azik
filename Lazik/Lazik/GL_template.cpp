@@ -144,9 +144,7 @@ void ChangeSize(GLsizei w, GLsizei h) {
 }
 
 
-// This function does any needed initialization on the rendering
-// context.  Here it sets up and initializes the lighting for
-// the scene.
+// This function does any needed initialization on the rendering context.  Here it sets up and initializes the lighting for the scene.
 void SetupRC()
 {
 	glEnable(GL_DEPTH_TEST);	// Hidden surface removal
@@ -242,215 +240,6 @@ unsigned char* LoadBitmapFile(const char* filename, BITMAPINFOHEADER* bitmapInfo
 	fclose(filePtr);
 	return bitmapImage;
 }
-
-//void kabina(void) {
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//	{
-//		GLfloat x2 = 24.5f;
-//		GLfloat y2 = 25.0f;
-//		GLfloat z2 = 25.0f;
-//
-//		glColor3f(1.0f, 0.0f, 0.0f);
-//
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x2, -y2, z2);
-//		glVertex3f(x2, -y2, z2);
-//		glVertex3f(-x2, y2, z2);
-//		glVertex3f(x2, y2, z2);
-//		glEnd();
-//
-//		// --- TYŁ (Back) ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x2, -y2, -z2);
-//		glVertex3f(x2, -y2, -z2);
-//		glVertex3f(-x2, y2, -z2);
-//		glVertex3f(x2, y2, -z2);
-//		glEnd();
-//
-//		// --- LEWA (Left) ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x2, -y2, -z2);
-//		glVertex3f(-x2, -y2, z2);
-//		glVertex3f(-x2, y2, -z2);
-//		glVertex3f(-x2, y2, z2);
-//		glEnd();
-//
-//		// --- PRAWA (Right) ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(x2, -y2, -z2);
-//		glVertex3f(x2, -y2, z2);
-//		glVertex3f(x2, y2, -z2);
-//		glVertex3f(x2, y2, z2);
-//		glEnd();
-//
-//		// --- DÓŁ (Bottom) ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x2, -y2, -z2);
-//		glVertex3f(x2, -y2, -z2);
-//		glVertex3f(-x2, -y2, z2);
-//		glVertex3f(x2, -y2, z2);
-//		glEnd();
-//
-//		// --- GÓRA (Top) ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x2, y2, -z2);
-//		glVertex3f(x2, y2, -z2);
-//		glVertex3f(-x2, y2, z2);
-//		glVertex3f(x2, y2, z2);
-//		glEnd();
-//	}
-//}
-//
-//void body(void)
-//{
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//	{
-//		GLfloat x1 = 25.0f;
-//		GLfloat y1 = 70.0f;
-//		GLfloat z1 = 15.0f;
-//
-//		glColor3f(0.0f, 1.0f, 0.0f);
-//
-//
-//		// --- PRZ�D ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x1, -y1, z1);
-//		glVertex3f(x1, -y1, z1);
-//		glVertex3f(-x1, y1, z1);
-//		glVertex3f(x1, y1, z1);
-//		glEnd();
-//
-//		// --- TY� ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x1, -y1, -z1);
-//		glVertex3f(x1, -y1, -z1);
-//		glVertex3f(-x1, y1, -z1);
-//		glVertex3f(x1, y1, -z1);
-//		glEnd();
-//
-//		// --- LEWA ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x1, -y1, -z1);
-//		glVertex3f(-x1, -y1, z1);
-//		glVertex3f(-x1, y1, -z1);
-//		glVertex3f(-x1, y1, z1);
-//		glEnd();
-//
-//		// --- PRAWA ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(x1, -y1, -z1);
-//		glVertex3f(x1, -y1, z1);
-//		glVertex3f(x1, y1, -z1);
-//		glVertex3f(x1, y1, z1);
-//		glEnd();
-//
-//		// --- Dӣ ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x1, -y1, -z1);
-//		glVertex3f(x1, -y1, -z1);
-//		glVertex3f(-x1, -y1, z1);
-//		glVertex3f(x1, -y1, z1);
-//		glEnd();
-//
-//		// --- G�RA ---
-//		glBegin(GL_TRIANGLE_STRIP);
-//		glVertex3f(-x1, y1, -z1);
-//		glVertex3f(x1, y1, -z1);
-//		glVertex3f(-x1, y1, z1);
-//		glVertex3f(x1, y1, z1);
-//		glEnd();
-//	}
-//
-//}
-//
-//void kula(void)
-//{
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
-//		GLUquadricObj* obj = NULL;
-//		obj = gluNewQuadric();
-//		if (obj == NULL) return;
-//
-//		glColor3f(0.1f, 0.1f, 0.1f);
-//
-//		gluQuadricTexture(obj, GL_TRUE);
-//		glBindTexture(GL_TEXTURE_2D, texture[1]);
-//		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-//
-//		glEnable(GL_TEXTURE_2D);
-//		gluSphere(obj, 15, 10, 7);
-//		glDisable(GL_TEXTURE_2D);
-//
-//		gluDeleteQuadric(obj);
-//	}
-//}
-//
-//void kulaDuza(void)
-//{
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
-//		GLUquadricObj* obj = NULL;
-//		obj = gluNewQuadric();
-//		if (obj == NULL) return;
-//
-//		glColor3f(0.1f, 0.1f, 0.1f);
-//
-//		gluQuadricTexture(obj, GL_TRUE);
-//		glBindTexture(GL_TEXTURE_2D, texture[1]);
-//		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-//
-//		glEnable(GL_TEXTURE_2D);
-//		gluSphere(obj, 20, 12, 7);
-//		glDisable(GL_TEXTURE_2D);
-//
-//		gluDeleteQuadric(obj);
-//	}
-//}
-//
-//
-//void Maszyna() {
-//	// --- Głównie ciało + kabina --- 
-//	glPushMatrix();
-//	glTranslatef(0.0f, 0.0f, 0.0f);
-//	glTranslatef(25.0f, 37.5f, -7.0f);
-//	body();
-//	glPopMatrix();
-//
-//	glPushMatrix();
-//	glTranslatef(0.0f, 0.0f, 0.0f);
-//	glTranslatef(25.0f, 82.5f, -37.0f);
-//	kabina();
-//	glPopMatrix();
-//	// --- Głównie ciało + kabina --- 
-//
-//	// --- Przednie koła --
-//	glPushMatrix();
-//	glTranslatef(0.0f, 0.0f, 0.0f);
-//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-//	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
-//	kula();
-//	glPopMatrix();
-//
-//	glPushMatrix();
-//	glTranslatef(50.0f, 0.0f, 0.0f);
-//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-//	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
-//	kula();
-//	glPopMatrix();
-//	// --- Przednie koła --
-//
-//	// --- Tylnie koła ---
-//	glPushMatrix();
-//	glTranslatef(0.0f, 75.0f, -5.0f);
-//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-//	kulaDuza();
-//	glPopMatrix();
-//
-//	glPushMatrix();
-//	glTranslatef(50.0f, 75.0f, -5.0f);
-//	glRotatef(wheelRotationAngle, 1.0f, 0.0f, 0.0f);
-//	kulaDuza();
-//	glPopMatrix();
-//	// --- Tylnie koła ---
-//}
 
 void Spodek(void) {
 	glPushMatrix();
@@ -586,17 +375,16 @@ void Kopula(void) {
 
 		glEnable(GL_TEXTURE_2D);
 
-		// --- START NEW LOGIC ---
+		// --- START LOGIC ---
 		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
 		glClipPlane(GL_CLIP_PLANE0, planeEq);
 		glEnable(GL_CLIP_PLANE0);
 
-		// Draw the sphere (half will be invisible)
 		gluSphere(obj, 20, 12, 7);
 
 		glDisable(GL_CLIP_PLANE0);
-		// --- END NEW LOGIC ---
+		// --- END LOGIC ---
 
 		glDisable(GL_TEXTURE_2D);
 
@@ -618,9 +406,7 @@ void Rakieta(void) {
 
 		glEnable(GL_TEXTURE_2D);
 
-		// --- START NEW LOGIC ---
-		//glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-		//glTranslatef(0.0f, 0.0f, -15.0f);
+		// --- START LOGIC ---
 		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
 		glClipPlane(GL_CLIP_PLANE0, planeEq);
@@ -629,7 +415,7 @@ void Rakieta(void) {
 		gluSphere(obj, 24, 14, 9);
 
 		glDisable(GL_CLIP_PLANE0);
-		// --- END NEW LOGIC ---
+		// --- END LOGIC ---
 
 		glDisable(GL_TEXTURE_2D);
 
@@ -651,17 +437,16 @@ void Swiatla(void) {
 
 		glEnable(GL_TEXTURE_2D);
 
-		// --- START NEW LOGIC ---
+		// --- START LOGIC ---
 		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
 		glClipPlane(GL_CLIP_PLANE0, planeEq);
 		glEnable(GL_CLIP_PLANE0);
 
-		// Draw the sphere (half will be invisible)
 		gluSphere(obj, 3, 12, 3);
 
 		glDisable(GL_CLIP_PLANE0);
-		// --- END NEW LOGIC ---
+		// --- END LOGIC ---
 
 		glDisable(GL_TEXTURE_2D);
 
@@ -754,14 +539,13 @@ void DrawGrid() {
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_LIGHTING);
 
-	glColor3f(0.8f, 0.8f, 0.8f); // Light grey grid
+	glColor3f(0.8f, 0.8f, 0.8f);
 
 	glBegin(GL_LINES);
 	for (float i = -500; i <= 500; i += 20) {
-		// Lines along X
 		glVertex3f(i, 0, -500);
 		glVertex3f(i, 0, 500);
-		// Lines along Z
+
 		glVertex3f(-500, 0, i);
 		glVertex3f(500, 0, i);
 	}
@@ -855,8 +639,7 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 	nPixelFormat = GetPixelFormat(hDC);
 	DescribePixelFormat(hDC, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 
-	// Does this pixel format require a palette?  If not, do not create a
-	// palette and just return NULL
+	// Does this pixel format require a palette?  If not, do not create a palette and just return NULL
 	if (!(pfd.dwFlags & PFD_NEED_PALETTE))
 		return NULL;
 
@@ -873,7 +656,6 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 	pPal->palVersion = 0x300;		// Windows 3.0
 	pPal->palNumEntries = (WORD)nColors; // table size
 
-	// Build mask of all 1's.  This creates a number represented by having the low order x bits set, where x = pfd.cRedBits, pfd.cGreenBits, and pfd.cBlueBits.
 	RedRange = (BYTE)((1 << pfd.cRedBits) - 1);
 	GreenRange = (BYTE)((1 << pfd.cGreenBits) - 1);
 	BlueRange = (BYTE)((1 << pfd.cBlueBits) - 1);
@@ -881,7 +663,6 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 	// Loop through all the palette entries
 	for (i = 0; i < nColors; i++)
 	{
-		// Fill in the 8-bit equivalents for each component
 		pPal->palPalEntry[i].peRed = (BYTE)((i >> pfd.cRedShift) & RedRange);
 		pPal->palPalEntry[i].peRed = (BYTE)(
 			((double)pPal->palPalEntry[i].peRed * 255.0) / RedRange);
@@ -898,17 +679,13 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 	}
 
 
-	// Create the palette
 	hRetPal = CreatePalette(pPal);
 
-	// Go ahead and select and realize the palette for this device context
 	SelectPalette(hDC, hRetPal, FALSE);
 	RealizePalette(hDC);
 
-	// Free the memory used for the logical palette structure
 	free(pPal);
 
-	// Return the handle to the new palette
 	return hRetPal;
 }
 
@@ -958,16 +735,13 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,
 		hInstance,
 		NULL);
 
-	// If window was not created, quit
 	if (hWnd == NULL)
 		return FALSE;
 
 
-	// Display the window
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
-	// Process application messages until the application closes
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
@@ -986,36 +760,32 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	WPARAM  wParam,
 	LPARAM  lParam)
 {
-	static HGLRC hRC = NULL;               // Permenant Rendering context
-	static HDC hDC = NULL;                 // Private GDI Device context
+	static HGLRC hRC = NULL;
+	static HDC hDC = NULL;
 
 	switch (message)
 	{
-		// Window creation, setup for OpenGL
 	case WM_CREATE:
-		// Store the device context
 		hDC = GetDC(hWnd);
 
-		// Select the pixel format
 		SetDCPixelFormat(hDC);
 
-		// Create palette if needed
 		hPalette = GetOpenGLPalette(hDC);
 
 		// Create the rendering context and make it current
 		hRC = wglCreateContext(hDC);
 		if (!wglMakeCurrent(hDC, hRC)) {
-			// Handle error
+
 		}
 
 		SetupRC();
-		glGenTextures(2, &texture[0]);                 // tworzy obiekt tekstury			
+		glGenTextures(2, &texture[0]);		
 
 		// �aduje pierwszy obraz tekstury:
 		bitmapData = LoadBitmapFile("checker.bmp", &bitmapInfoHeader);
 
 		if (bitmapData != NULL) {
-			glBindTexture(GL_TEXTURE_2D, texture[0]);       // aktywuje obiekt tekstury
+			glBindTexture(GL_TEXTURE_2D, texture[0]);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -1032,7 +802,7 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 				
 		bitmapData = LoadBitmapFile("wheels.bmp", &bitmapInfoHeader);
 		if (bitmapData != NULL) {
-			glBindTexture(GL_TEXTURE_2D, texture[1]);   // activate texture object
+			glBindTexture(GL_TEXTURE_2D, texture[1]);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -1054,16 +824,13 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		SetTimer(hWnd, 1, 10, NULL);
 		break;
 
-		// Window is being destroyed, cleanup
 	case WM_DESTROY:
 		KillTimer(hWnd, 1);
-		// Deselect the current rendering context and delete it
 		wglMakeCurrent(hDC, NULL);
 		wglDeleteContext(hRC);
 
 		ReleaseDC(hWnd, hDC);
 
-		// Delete the palette if it was created
 		if (hPalette != NULL)
 			DeleteObject(hPalette);
 
@@ -1071,25 +838,20 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		break;
 
 	case WM_SIZE:
-		// Call our function which modifies the clipping volume and viewport
 		ChangeSize(LOWORD(lParam), HIWORD(lParam));
 		break;
 
 	case WM_PAINT:
 	{
-		// Call OpenGL drawing code
 		RenderScene();
 
 		SwapBuffers(hDC);
 
-		// Validate the newly painted client area
 		ValidateRect(hWnd, NULL);
 	}
 	break;
 
-	// Windows is telling the application that it may modify the system palette.  This message in essance asks the application for a new palette.
 	case WM_QUERYNEWPALETTE:
-		// If the palette was created.
 		if (hPalette)
 		{
 			int nRet;
@@ -1101,7 +863,6 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		break;
 
 	case WM_PALETTECHANGED:
-		// Don't do anything if the palette does not exist, or if this is the window that changed the palette.
  		if ((hPalette != NULL) && ((HWND)wParam != hWnd))
 		{
 			SelectPalette(hDC, hPalette, FALSE);
@@ -1335,9 +1096,9 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 				int dx = x - lastMouseX;
 				int dy = y - lastMouseY;
 
-				// Update camera angles (a factor of 0.5 is a good starting sensitivity)
-				cameraAngleY += (GLfloat)dx * 0.5f; // Yaw (around Y-axis)
-				cameraAngleX += (GLfloat)dy * 0.5f; // Pitch (around X-axis)
+				// Update camera angles
+				cameraAngleY += (GLfloat)dx * 0.5f; // Yaw
+				cameraAngleX += (GLfloat)dy * 0.5f; // Pitch
 
 				// Keep angles within 0-360 range
 				cameraAngleY = fmodf(cameraAngleY, 360.0f);
