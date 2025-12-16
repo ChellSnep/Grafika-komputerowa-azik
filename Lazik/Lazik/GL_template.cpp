@@ -45,7 +45,7 @@ static GLfloat yRot = 0.0f;
 static GLsizei lastHeight;
 static GLsizei lastWidth;
 
-// --- New Camera Variables for Orbiting/Zooming/Panning ---
+// --- Camera Variables for Orbiting/Zooming/Panning ---
 static GLfloat cameraDistance = 200.0f;
 static GLfloat cameraAngleX = 0.0f; 
 static GLfloat cameraAngleY = 0.0f;
@@ -59,6 +59,8 @@ static int lastMouseX;
 static int lastMouseY;
 static BOOL isRotating = FALSE;
 static BOOL isPanning = FALSE;
+
+static BOOL isResettingCamera = FALSE;
 // --- End New Camera Variables ---
 
 // --- Tilt Variables ---
@@ -85,7 +87,7 @@ static UFOPosition ufoPos = { 0.0f, 0.0f, 0.0f };
 
 static GLfloat ufoMoveSpeed = 2.0f;
 static GLfloat ufoFlySpeed = 1.0f;
-static GLfloat ufoMinHeight = 3.0f;
+static GLfloat ufoMinHeight = 10.0f;
 // --- End UFO Movement Variables ---
 
 static BOOL isDecorationsSpinning = TRUE;
@@ -135,7 +137,7 @@ void ChangeSize(GLsizei w, GLsizei h) {
 	glLoadIdentity();
 
 	// Establish perspective: (FOV, Aspect, Near, Far)
-	gluPerspective(60.0f, fAspect, 1.0, 5000.0); // Use perspective
+	gluPerspective(60.0f, fAspect, 1.0, 15000.0); // Use perspective
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -147,39 +149,8 @@ void ChangeSize(GLsizei w, GLsizei h) {
 // the scene.
 void SetupRC()
 {
-	// Light values and coordinates
-	//GLfloat  ambientLight[] = { 0.3f, 0.3f, 0.3f, 1.0f };
-	//GLfloat  diffuseLight[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-	//GLfloat  specular[] = { 1.0f, 1.0f, 1.0f, 1.0f};
-	//GLfloat	 lightPos[] = { 0.0f, 150.0f, 150.0f, 1.0f };
-	//GLfloat  specref[] =  { 1.0f, 1.0f, 1.0f, 1.0f };
-
-
 	glEnable(GL_DEPTH_TEST);	// Hidden surface removal
 	glFrontFace(GL_CCW);		// Counter clock-wise polygons face out
-	//glEnable(GL_CULL_FACE);		// Do not calculate inside of jet
-
-	// Enable lighting
-	//glEnable(GL_LIGHTING);
-
-	// Setup and enable light 0
-	//glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-	//glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
-	//glLightfv(GL_LIGHT0,GL_SPECULAR,specular);
-	//glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
-	//glEnable(GL_LIGHT0);
-
-	// Enable color tracking
-	//glEnable(GL_COLOR_MATERIAL);
-
-	// Set Material properties to follow glColor values
-	//glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-
-	// All materials hereafter have full specular reflectivity
-	// with a high shine
-	//glMaterialfv(GL_FRONT, GL_SPECULAR,specref);
-	//glMateriali(GL_FRONT,GL_SHININESS,128);
-
 
 	// White background
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -778,6 +749,26 @@ void UFO() {
 	glPopMatrix();
 }
 
+void DrawGrid() {
+	glPushMatrix();
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_LIGHTING);
+
+	glColor3f(0.8f, 0.8f, 0.8f); // Light grey grid
+
+	glBegin(GL_LINES);
+	for (float i = -500; i <= 500; i += 20) {
+		// Lines along X
+		glVertex3f(i, 0, -500);
+		glVertex3f(i, 0, 500);
+		// Lines along Z
+		glVertex3f(-500, 0, i);
+		glVertex3f(500, 0, i);
+	}
+	glEnd();
+	glPopMatrix();
+}
+
 void RenderScene(void)
 {
 	// Clear the window with current clearing color
@@ -786,24 +777,26 @@ void RenderScene(void)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity(); // Reset the modelview matrix
 
-	// --- New Camera Setup (View Transformation) ---
-	// 1. Zoom (Move the camera back/forward along the view vector)
+	// --- Camera Setup  ---
 	glTranslatef(0.0f, 0.0f, -cameraDistance);
-
-	// 2. Pan (Translate the world in the opposite direction of the pan)
 	glTranslatef(cameraPanX, cameraPanY, 0.0f);
 
-	// 3. Orbit (Rotate the world around the center (0,0,0) of Maszyna)
 	glRotatef(cameraAngleX, 1.0f, 0.0f, 0.0f); // Pitch
 	glRotatef(cameraAngleY, 0.0f, 1.0f, 0.0f); // Yaw
-	// --- End New Camera Setup ---
+
+	glTranslatef(-ufoPos.x, -ufoPos.y, -ufoPos.z);
+	// --- End Camera Setup ---
+
+	DrawGrid();
 
 	glPolygonMode(GL_BACK, GL_LINE);
 
 	glPushMatrix();
+
 	glTranslatef(ufoPos.x, ufoPos.y, ufoPos.z);
 	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
 	glRotatef(pitchAngle, 1.0f, 0.0f, 0.0f);
+
 	UFO();
 	glPopMatrix();
 
@@ -1208,6 +1201,26 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			}
 		}
 
+		if (isResettingCamera) {
+			float smoothSpeed = 0.1f;
+
+			cameraAngleX += (0.0f - cameraAngleX) * smoothSpeed;
+			cameraAngleY += (0.0f - cameraAngleY) * smoothSpeed;
+
+			cameraPanX += (0.0f - cameraPanX) * smoothSpeed;
+			cameraPanY += (0.0f - cameraPanY) * smoothSpeed;
+
+			if (fabs(cameraAngleX) < 0.1f && fabs(cameraAngleY) < 0.1f && fabs(cameraPanX) < 0.1f && fabs(cameraPanY) < 0.1f) {
+				cameraAngleX = 0.0f;
+				cameraAngleY = 0.0f;
+				cameraPanX = 0.0f;
+				cameraPanY = 0.0f;
+				isResettingCamera = FALSE;
+			}
+
+			changed = TRUE;
+		}
+
 		if (changed) {
 			char debugBuffer[100];
 			sprintf(debugBuffer, "X=%.2f	Y=%.2f	Z=%.2f \n", ufoPos.x, ufoPos.y, ufoPos.z);
@@ -1279,6 +1292,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			changed = TRUE;
 		}
 
+		if (wParam == 'R' || wParam == 'r') {
+			isResettingCamera = TRUE;
+			changed = TRUE;
+
+		}
+
 		if (changed) {
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
@@ -1310,6 +1329,7 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 	// Mouse input for Orbit (LMB) and Pan (RMB)
 	case WM_LBUTTONDOWN: // Start Orbiting
+		isResettingCamera = FALSE;
 		lastMouseX = LOWORD(lParam);
 		lastMouseY = HIWORD(lParam);
 		isRotating = TRUE;
@@ -1317,6 +1337,7 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		break;
 
 	case WM_RBUTTONDOWN: // Start Panning
+		isResettingCamera = FALSE;
 		lastMouseX = LOWORD(lParam);
 		lastMouseY = HIWORD(lParam);
 		isPanning = TRUE;
