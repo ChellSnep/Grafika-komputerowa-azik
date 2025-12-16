@@ -61,7 +61,7 @@ static BOOL isRotating = FALSE;
 static BOOL isPanning = FALSE;
 // --- End New Camera Variables ---
 
-// --- New Movement Variables ---
+// --- Tilt Variables ---
 static GLfloat steeringAngle = 0.0f;
 static GLfloat pitchAngle = 0.0f;
 
@@ -72,13 +72,29 @@ static const GLfloat steeringSpeed = 7.0f;
 static GLfloat currentWheelSpeed = 0.0f;
 
 static GLfloat decorationRotationAngle = 0.0f;
-// --- End New Movement Variables ---
+// --- End Tilt Variables ---
+
+// --- UFO Movement Variables ---
+struct UFOPosition {
+	GLfloat x;
+	GLfloat y;
+	GLfloat z;
+};
+
+static UFOPosition ufoPos = { 0.0f, 0.0f, 0.0f };
+
+static GLfloat ufoMoveSpeed = 2.0f;
+static GLfloat ufoFlySpeed = 1.0f;
+static GLfloat ufoMinHeight = 3.0f;
+// --- End UFO Movement Variables ---
 
 static BOOL isDecorationsSpinning = TRUE;
 static BOOL keyA_held = FALSE;
 static BOOL keyD_held = FALSE;
 static BOOL keyW_held = FALSE;
 static BOOL keyS_held = FALSE;
+static BOOL keySpacja_held = FALSE;
+static BOOL keyCTRL_held = FALSE;
 
 // Opis tekstury
 BITMAPINFOHEADER	bitmapInfoHeader;	// nag��wek obrazu
@@ -785,6 +801,7 @@ void RenderScene(void)
 	glPolygonMode(GL_BACK, GL_LINE);
 
 	glPushMatrix();
+	glTranslatef(ufoPos.x, ufoPos.y, ufoPos.z);
 	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
 	glRotatef(pitchAngle, 1.0f, 0.0f, 0.0f);
 	UFO();
@@ -1110,18 +1127,33 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			if (decorationRotationAngle <= -360.0f) {
 				decorationRotationAngle += 360.0f;
 			}
-			// Since the angle changed, we need to redraw
+			changed = TRUE;
+		}
+
+		if (keySpacja_held) {
+			ufoPos.y += ufoFlySpeed;
+			changed = TRUE;
+		}
+		if (keyCTRL_held) {
+			ufoPos.y -= ufoFlySpeed;
+			if (ufoPos.y < ufoMinHeight) {
+				ufoPos.y = ufoMinHeight;
+			}
 			changed = TRUE;
 		}
 
 		if (keyA_held) {
-			steeringAngle -= steeringSpeed * 0.1f;
-			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
+			ufoPos.x -= ufoMoveSpeed;
+
+			steeringAngle += steeringSpeed * 0.1f;
+			if (steeringAngle > maxSteeringAngle) steeringAngle = maxSteeringAngle;
 			changed = TRUE;
 		}
 		else if (keyD_held) {
-			steeringAngle += steeringSpeed * 0.1f;
-			if (steeringAngle > maxSteeringAngle) steeringAngle = maxSteeringAngle;
+			ufoPos.x += ufoMoveSpeed;
+
+			steeringAngle -= steeringSpeed * 0.1f;
+			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
 			changed = TRUE;
 		}
 		else {
@@ -1143,11 +1175,17 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		}
 
 		if (keyW_held) {
+			ufoPos.z -= ufoMoveSpeed;
+
 			pitchAngle -= steeringSpeed * 0.1f;
 			if (pitchAngle < -maxPitchAngle) pitchAngle = -maxPitchAngle;
 			changed = TRUE;
+
+
 		}
 		else if (keyS_held) {
+			ufoPos.z += ufoMoveSpeed;
+
 			pitchAngle += steeringSpeed * 0.1f;
 			if (pitchAngle > maxPitchAngle) pitchAngle = maxPitchAngle;
 			changed = TRUE;
@@ -1171,6 +1209,10 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		}
 
 		if (changed) {
+			char debugBuffer[100];
+			sprintf(debugBuffer, "X=%.2f	Y=%.2f	Z=%.2f \n", ufoPos.x, ufoPos.y, ufoPos.z);
+			OutputDebugStringA(debugBuffer);
+
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 	}
@@ -1180,6 +1222,18 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	{
 		BOOL changed = FALSE;
 		GLfloat rotationSpeed = 10.0f;
+
+		if (wParam == VK_SPACE) {
+			keySpacja_held = TRUE;
+			keyCTRL_held = FALSE;
+			changed = TRUE;
+		}
+
+		if (wParam == VK_CONTROL) {
+			keyCTRL_held = TRUE;
+			keySpacja_held = FALSE;
+			changed = TRUE;
+		}
 
 		if (wParam == 'W' || wParam == 'w') {
 			keyW_held = TRUE;
@@ -1233,6 +1287,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 	case WM_KEYUP:
 	{
+		if (wParam == VK_SPACE) {
+			keySpacja_held = FALSE;
+		}
+		if (wParam == VK_CONTROL) {
+			keyCTRL_held = FALSE;
+		}
 		if (wParam == 'A' || wParam == 'a') {
 			keyA_held = FALSE;
 		}
