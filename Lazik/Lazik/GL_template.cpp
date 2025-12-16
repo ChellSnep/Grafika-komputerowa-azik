@@ -62,19 +62,19 @@ static BOOL isPanning = FALSE;
 // --- End New Camera Variables ---
 
 // --- New Movement Variables ---
-static GLfloat wheelRotationAngle = 0.0f;
 static GLfloat steeringAngle = 0.0f;
-static const GLfloat maxSteeringAngle = 25.0f;
-static const GLfloat steeringSpeed = 5.0f;
+static GLfloat pitchAngle = 0.0f;
 
+static const GLfloat maxSteeringAngle = 10.0f;
+static const GLfloat maxPitchAngle = 10.0f;
+
+static const GLfloat steeringSpeed = 7.0f;
 static GLfloat currentWheelSpeed = 0.0f;
-static const GLfloat maxWheelSpeed = 8.0f;
-static const GLfloat accelerationRate = 0.1f;
-static const GLfloat decelerationRate = 0.2f;
 
 static GLfloat decorationRotationAngle = 0.0f;
 // --- End New Movement Variables ---
 
+static BOOL isDecorationsSpinning = TRUE;
 static BOOL keyA_held = FALSE;
 static BOOL keyD_held = FALSE;
 static BOOL keyW_held = FALSE;
@@ -492,8 +492,6 @@ void Spodek(void) {
 void Spod(void) {
 	glPushMatrix();
 
-	glTranslatef(0.0f, -0.1f, 0.0f);
-
 	GLfloat radius = 65.0f; 
 	GLfloat height = 3.0f; 
 	int segments = 64;      
@@ -542,9 +540,6 @@ void Spod(void) {
 void SpodDek(void) {
 	glPushMatrix();
 
-	glTranslatef(0.0f, -1.0f, 0.0f);
-	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
-
 	GLfloat radius = 65.1f;
 	GLfloat height = 1.0f;
 	int segments = 64;
@@ -568,9 +563,6 @@ void SpodDek(void) {
 
 void SpodDek2(void) {
 	glPushMatrix();
-
-	glTranslatef(0.0f, -1.0f, 0.0f);
-	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
 
 	GLfloat radius = 65.1f;
 	GLfloat height = 1.0f;
@@ -608,7 +600,6 @@ void Kopula(void) {
 		glEnable(GL_TEXTURE_2D);
 
 		// --- START NEW LOGIC ---
-		glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
 		glClipPlane(GL_CLIP_PLANE0, planeEq);
@@ -626,7 +617,7 @@ void Kopula(void) {
 	}
 }
 
-void Uchwyt(void) {
+void Rakieta(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
 		GLUquadricObj* obj = NULL;
 		obj = gluNewQuadric();
@@ -642,7 +633,7 @@ void Uchwyt(void) {
 
 		// --- START NEW LOGIC ---
 		//glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-		glTranslatef(0.0f, 0.0f, -15.0f);
+		//glTranslatef(0.0f, 0.0f, -15.0f);
 		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
 
 		glClipPlane(GL_CLIP_PLANE0, planeEq);
@@ -659,15 +650,116 @@ void Uchwyt(void) {
 	}
 }
 
+void Swiatla(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); {
+		GLUquadricObj* obj = NULL;
+		obj = gluNewQuadric();
+		if (obj == NULL) return;
+
+		glColor3f(0.7803921568627451f, 0.7607843137254902f, 0.4901960784313725f);
+
+		gluQuadricTexture(obj, GL_TRUE);
+		glBindTexture(GL_TEXTURE_2D, texture[1]);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+		glEnable(GL_TEXTURE_2D);
+
+		// --- START NEW LOGIC ---
+		GLdouble planeEq[] = { 0.0, 0.0, 1.0, 0.0 };
+
+		glClipPlane(GL_CLIP_PLANE0, planeEq);
+		glEnable(GL_CLIP_PLANE0);
+
+		// Draw the sphere (half will be invisible)
+		gluSphere(obj, 3, 12, 3);
+
+		glDisable(GL_CLIP_PLANE0);
+		// --- END NEW LOGIC ---
+
+		glDisable(GL_TEXTURE_2D);
+
+		gluDeleteQuadric(obj);
+	}
+}
+
 void UFO() {
 	Spodek();
+
+	glPushMatrix();
+	glTranslatef(0.0f, -0.1f, 0.0f);
 	Spod();
+	glPopMatrix();
+	
+	glPushMatrix();
+	glTranslatef(0.0f, -1.0f, 0.0f);
+	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
 	SpodDek();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(0.0f, -1.0f, 0.0f);
+	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
 	SpodDek2();
-
+	glPopMatrix();
+	
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 	Kopula();
+	glPopMatrix();
+	
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(0.0f, 0.0f, -15.0f);
+	Rakieta();
+	glPopMatrix();
 
-	Uchwyt();
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(0.0f, 55.0f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(0.0f, -55.0f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(-55.0f, 0.0f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(55.0f, 0.0f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(38.9f, 38.9f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(38.9f, -38.9f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(-38.9f, 38.9f, 0.0f);
+	Swiatla();
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+	glTranslatef(-38.9f, -38.9f, 0.0f);
+	Swiatla();
+	glPopMatrix();
 }
 
 void RenderScene(void)
@@ -692,7 +784,11 @@ void RenderScene(void)
 
 	glPolygonMode(GL_BACK, GL_LINE);
 
+	glPushMatrix();
+	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
+	glRotatef(pitchAngle, 1.0f, 0.0f, 0.0f);
 	UFO();
+	glPopMatrix();
 
 	glMatrixMode(GL_MODELVIEW);
 	glFlush();
@@ -1009,46 +1105,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	{
 		BOOL changed = FALSE;
 
-		decorationRotationAngle -= 0.2f;
-		if (decorationRotationAngle <= -360.0f) {
-			decorationRotationAngle += 360.0f;
-		}
-		changed = TRUE;
-		if (keyW_held) {
-			currentWheelSpeed -= accelerationRate;
-			if (currentWheelSpeed < -maxWheelSpeed) {
-				currentWheelSpeed = -maxWheelSpeed;
+		if (isDecorationsSpinning) {
+			decorationRotationAngle -= 0.2f;
+			if (decorationRotationAngle <= -360.0f) {
+				decorationRotationAngle += 360.0f;
 			}
-			changed = TRUE;
-		}
-		else if (keyS_held) {
-			currentWheelSpeed += accelerationRate;
-			if (currentWheelSpeed > maxWheelSpeed) {
-				currentWheelSpeed = maxWheelSpeed;
-			}
-			changed = TRUE;
-		}
-		else {
-			if (fabs(currentWheelSpeed) > 0.05f) {
-				if (currentWheelSpeed > 0) {
-					currentWheelSpeed -= decelerationRate;
-					if (currentWheelSpeed < 0.0f) currentWheelSpeed = 0.0f;
-				}
-				else {
-					currentWheelSpeed += decelerationRate;
-					if (currentWheelSpeed > 0.0f) currentWheelSpeed = 0.0f;
-				}
-				changed = TRUE;
-			}
-			else if (currentWheelSpeed != 0.0f) {
-				currentWheelSpeed = 0.0f;
-				changed = TRUE;
-			}
-		}
-
-		if (currentWheelSpeed != 0.0f) {
-			wheelRotationAngle += currentWheelSpeed;
-			wheelRotationAngle = fmodf(wheelRotationAngle, 360.0f);
+			// Since the angle changed, we need to redraw
 			changed = TRUE;
 		}
 
@@ -1065,11 +1127,11 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		else {
 			if (fabs(steeringAngle) > 0.5f) {
 				if (steeringAngle > 0) {
-					steeringAngle -= steeringSpeed * 0.15f;
+					steeringAngle -= steeringSpeed * 0.1f;
 					if (steeringAngle < 0.0f) steeringAngle = 0.0f;
 				}
 				else {
-					steeringAngle += steeringSpeed * 0.15f;
+					steeringAngle += steeringSpeed * 0.1f;
 					if (steeringAngle > 0.0f) steeringAngle = 0.0f;
 				}
 				changed = TRUE;
@@ -1080,47 +1142,69 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			}
 		}
 
+		if (keyW_held) {
+			pitchAngle -= steeringSpeed * 0.1f;
+			if (pitchAngle < -maxPitchAngle) pitchAngle = -maxPitchAngle;
+			changed = TRUE;
+		}
+		else if (keyS_held) {
+			pitchAngle += steeringSpeed * 0.1f;
+			if (pitchAngle > maxPitchAngle) pitchAngle = maxPitchAngle;
+			changed = TRUE;
+		}
+		else {
+			if (fabs(pitchAngle) > 0.5f) {
+				if (pitchAngle > 0) {
+					pitchAngle -= steeringSpeed * 0.1f;
+					if (pitchAngle < 0.0f) pitchAngle = 0.0f;
+				}
+				else {
+					pitchAngle += steeringSpeed * 0.1f;
+					if (pitchAngle > 0.0f) pitchAngle = 0.0f;
+				}
+				changed = TRUE;
+			}
+			else if (pitchAngle != 0.0f) {
+				pitchAngle = 0.0f;
+				changed = TRUE;
+			}
+		}
+
 		if (changed) {
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 	}
 	break;
 
-	// Key press, check for arrow keys to do cube rotation.
 	case WM_KEYDOWN:
 	{
 		BOOL changed = FALSE;
 		GLfloat rotationSpeed = 10.0f;
 
-		// W: Rotate Wheels Forward
 		if (wParam == 'W' || wParam == 'w') {
 			keyW_held = TRUE;
 			keyS_held = FALSE;
 			changed = TRUE;
 		}
 
-		// S: Rotate Wheels Backward
 		if (wParam == 'S' || wParam == 's') {
 			keyS_held = TRUE;
 			keyW_held = FALSE;
 			changed = TRUE;
 		}
 
-		// A: Turn Left (Steering)
 		if (wParam == 'A' || wParam == 'a') {
 			keyA_held = TRUE;
-			keyD_held = FALSE; // Ensure only one is pressed
+			keyD_held = FALSE;
 			changed = TRUE;
 		}
 
-		// D: Turn Right (Steering)
 		if (wParam == 'D' || wParam == 'd') {
 			keyD_held = TRUE;
-			keyA_held = FALSE; // Ensure only one is pressed
+			keyA_held = FALSE;
 			changed = TRUE;
 		}
 
-		// Arrow Keys: Pan (alternative to mouse pan)
 		if (wParam == VK_LEFT) {
 			cameraPanX += 5.0f;
 			changed = TRUE;
