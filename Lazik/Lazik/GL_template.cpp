@@ -57,8 +57,9 @@ static GLfloat cameraPanY = 0.0f;
 // Mouse state for interaction
 static int lastMouseX;
 static int lastMouseY;
-static BOOL isRotating = FALSE;
+static BOOL isFirstMouse = TRUE;
 static BOOL isPanning = FALSE;
+static BOOL isCursorLocked = TRUE;
 
 static BOOL isResettingCamera = FALSE;
 // --- End New Camera Variables ---
@@ -239,6 +240,52 @@ unsigned char* LoadBitmapFile(const char* filename, BITMAPINFOHEADER* bitmapInfo
 	// zamyka plik i zwraca wskaźnik bufora zawierającego wczytany obraz
 	fclose(filePtr);
 	return bitmapImage;
+}
+
+GLuint base;
+
+GLvoid BuildFont(HDC hDC) {
+	HFONT hFont;
+	base = glGenLists(96);
+
+	hFont = CreateFont(-14,
+		0,
+		0,
+		0,
+		FW_BOLD,
+		FALSE,
+		FALSE,
+		FALSE,
+		ANSI_CHARSET,
+		OUT_TT_PRECIS,
+		CLIP_DEFAULT_PRECIS,
+		ANTIALIASED_QUALITY,
+		FF_DONTCARE | DEFAULT_PITCH,
+		"Courier New");
+
+	SelectObject(hDC, hFont);
+	wglUseFontBitmaps(hDC, 32, 96, base);
+	DeleteObject(hFont);
+}
+
+GLvoid KillFont(GLvoid) {
+	glDeleteLists(base, 96);
+}
+
+GLvoid glPrint(const char* fmt, ...) {
+	char text[256];
+	va_list ap;
+
+	if (fmt == NULL) return;
+
+	va_start(ap, fmt);
+	vsprintf(text, fmt, ap);
+	va_end(ap);
+
+	glPushAttrib(GL_LIST_BIT);
+	glListBase(base - 32);  // Sets The Base Character to 32
+	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);
+	glPopAttrib();
 }
 
 void Spodek(void) {
@@ -571,6 +618,7 @@ void RenderScene(void)
 	glTranslatef(-ufoPos.x, -ufoPos.y, -ufoPos.z);
 	// --- End Camera Setup ---
 
+	// --- Teren
 	DrawGrid();
 
 	glPolygonMode(GL_BACK, GL_LINE);
@@ -583,6 +631,37 @@ void RenderScene(void)
 
 	UFO();
 	glPopMatrix();
+
+	// --- Text Rendering ---
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+
+	gluOrtho2D(0, lastWidth, lastHeight, 0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glRasterPos2i(10, 20);
+	glPrint("TAB - odblokowanie myszki");
+
+	glRasterPos2i(10, 35);
+	glPrint("R - resetowanie kamery");
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_2D);
+
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	//--- End Text Rendering ---
 
 	glMatrixMode(GL_MODELVIEW);
 	glFlush();
@@ -729,7 +808,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,
 
 		// Window position and size
 		50, 50,
-		400, 400,
+		1024, 768,
 		NULL,
 		NULL,
 		hInstance,
@@ -753,12 +832,8 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,
 
 
 
-
 // Window procedure, handles all messages for this program
-LRESULT CALLBACK WndProc(HWND    hWnd,
-	UINT    message,
-	WPARAM  wParam,
-	LPARAM  lParam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static HGLRC hRC = NULL;
 	static HDC hDC = NULL;
@@ -767,68 +842,55 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	{
 	case WM_CREATE:
 		hDC = GetDC(hWnd);
-
 		SetDCPixelFormat(hDC);
-
 		hPalette = GetOpenGLPalette(hDC);
 
 		// Create the rendering context and make it current
 		hRC = wglCreateContext(hDC);
-		if (!wglMakeCurrent(hDC, hRC)) {
-
-		}
+		if (!wglMakeCurrent(hDC, hRC)) {}
 
 		SetupRC();
-		glGenTextures(2, &texture[0]);		
+		BuildFont(hDC);
+		glGenTextures(2, &texture[0]);
 
-		// �aduje pierwszy obraz tekstury:
+		if (isCursorLocked) ShowCursor(FALSE);
+
+		// Load Textures
 		bitmapData = LoadBitmapFile("checker.bmp", &bitmapInfoHeader);
-
 		if (bitmapData != NULL) {
 			glBindTexture(GL_TEXTURE_2D, texture[0]);
-
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
 			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, bitmapInfoHeader.biWidth,
 				bitmapInfoHeader.biHeight, GL_RGB, GL_UNSIGNED_BYTE, bitmapData);
-
 			free(bitmapData);
 			bitmapData = NULL;
 		}
-				
+
 		bitmapData = LoadBitmapFile("wheels.bmp", &bitmapInfoHeader);
 		if (bitmapData != NULL) {
 			glBindTexture(GL_TEXTURE_2D, texture[1]);
-
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			// create texture image
 			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, bitmapInfoHeader.biWidth,
 				bitmapInfoHeader.biHeight, GL_RGB, GL_UNSIGNED_BYTE, bitmapData);
-
 			free(bitmapData);
 			bitmapData = NULL;
 		}
 
-		// ustalenie sposobu mieszania tekstury z t�em
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
 		SetTimer(hWnd, 1, 10, NULL);
 		break;
 
 	case WM_DESTROY:
+		KillFont();
 		KillTimer(hWnd, 1);
 		wglMakeCurrent(hDC, NULL);
 		wglDeleteContext(hRC);
-
 		ReleaseDC(hWnd, hDC);
 
 		if (hPalette != NULL)
@@ -842,14 +904,10 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		break;
 
 	case WM_PAINT:
-	{
 		RenderScene();
-
 		SwapBuffers(hDC);
-
 		ValidateRect(hWnd, NULL);
-	}
-	break;
+		break;
 
 	case WM_QUERYNEWPALETTE:
 		if (hPalette)
@@ -863,7 +921,7 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		break;
 
 	case WM_PALETTECHANGED:
- 		if ((hPalette != NULL) && ((HWND)wParam != hWnd))
+		if ((hPalette != NULL) && ((HWND)wParam != hWnd))
 		{
 			SelectPalette(hDC, hPalette, FALSE);
 			RealizePalette(hDC);
@@ -898,14 +956,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 		if (keyA_held) {
 			ufoPos.x -= ufoMoveSpeed;
-
 			steeringAngle += steeringSpeed * 0.1f;
 			if (steeringAngle > maxSteeringAngle) steeringAngle = maxSteeringAngle;
 			changed = TRUE;
 		}
 		else if (keyD_held) {
 			ufoPos.x += ufoMoveSpeed;
-
 			steeringAngle -= steeringSpeed * 0.1f;
 			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
 			changed = TRUE;
@@ -930,16 +986,12 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 		if (keyW_held) {
 			ufoPos.z -= ufoMoveSpeed;
-
 			pitchAngle -= steeringSpeed * 0.1f;
 			if (pitchAngle < -maxPitchAngle) pitchAngle = -maxPitchAngle;
 			changed = TRUE;
-
-
 		}
 		else if (keyS_held) {
 			ufoPos.z += ufoMoveSpeed;
-
 			pitchAngle += steeringSpeed * 0.1f;
 			if (pitchAngle > maxPitchAngle) pitchAngle = maxPitchAngle;
 			changed = TRUE;
@@ -964,10 +1016,8 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 
 		if (isResettingCamera) {
 			float smoothSpeed = 0.1f;
-
 			cameraAngleX += (0.0f - cameraAngleX) * smoothSpeed;
 			cameraAngleY += (0.0f - cameraAngleY) * smoothSpeed;
-
 			cameraPanX += (0.0f - cameraPanX) * smoothSpeed;
 			cameraPanY += (0.0f - cameraPanY) * smoothSpeed;
 
@@ -978,7 +1028,6 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 				cameraPanY = 0.0f;
 				isResettingCamera = FALSE;
 			}
-
 			changed = TRUE;
 		}
 
@@ -986,7 +1035,6 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 			char debugBuffer[100];
 			sprintf(debugBuffer, "X=%.2f	Y=%.2f	Z=%.2f \n", ufoPos.x, ufoPos.y, ufoPos.z);
 			OutputDebugStringA(debugBuffer);
-
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 	}
@@ -995,146 +1043,43 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 	case WM_KEYDOWN:
 	{
 		BOOL changed = FALSE;
-		GLfloat rotationSpeed = 10.0f;
 
-		if (wParam == VK_SPACE) {
-			keySpacja_held = TRUE;
-			keyCTRL_held = FALSE;
-			changed = TRUE;
+		if (wParam == VK_TAB) { 
+			isCursorLocked = !isCursorLocked; 
+			ShowCursor(!isCursorLocked); 
+		
+			if (isCursorLocked) isFirstMouse = TRUE;
 		}
 
-		if (wParam == VK_CONTROL) {
-			keyCTRL_held = TRUE;
-			keySpacja_held = FALSE;
-			changed = TRUE;
-		}
-
-		if (wParam == 'W' || wParam == 'w') {
-			keyW_held = TRUE;
-			keyS_held = FALSE;
-			changed = TRUE;
-		}
-
-		if (wParam == 'S' || wParam == 's') {
-			keyS_held = TRUE;
-			keyW_held = FALSE;
-			changed = TRUE;
-		}
-
-		if (wParam == 'A' || wParam == 'a') {
-			keyA_held = TRUE;
-			keyD_held = FALSE;
-			changed = TRUE;
-		}
-
-		if (wParam == 'D' || wParam == 'd') {
-			keyD_held = TRUE;
-			keyA_held = FALSE;
-			changed = TRUE;
-		}
-
-		if (wParam == 'R' || wParam == 'r') {
-			isResettingCamera = TRUE;
-			changed = TRUE;
-
-		}
-
-		if (changed) {
-			InvalidateRect(hWnd, NULL, FALSE);
-		}
+		if (wParam == VK_SPACE) { keySpacja_held = TRUE; keyCTRL_held = FALSE; changed = TRUE; }
+		if (wParam == VK_CONTROL) { keyCTRL_held = TRUE; keySpacja_held = FALSE; changed = TRUE; }
+		if (wParam == 'W' || wParam == 'w') { keyW_held = TRUE; keyS_held = FALSE; changed = TRUE; }
+		if (wParam == 'S' || wParam == 's') { keyS_held = TRUE; keyW_held = FALSE; changed = TRUE; }
+		if (wParam == 'A' || wParam == 'a') { keyA_held = TRUE; keyD_held = FALSE; changed = TRUE; }
+		if (wParam == 'D' || wParam == 'd') { keyD_held = TRUE; keyA_held = FALSE; changed = TRUE; }
+		if (wParam == 'R' || wParam == 'r') { isResettingCamera = TRUE; changed = TRUE; }
+		if (changed) InvalidateRect(hWnd, NULL, FALSE);
 	}
 	break;
 
 	case WM_KEYUP:
 	{
-		if (wParam == VK_SPACE) {
-			keySpacja_held = FALSE;
-		}
-		if (wParam == VK_CONTROL) {
-			keyCTRL_held = FALSE;
-		}
-		if (wParam == 'A' || wParam == 'a') {
-			keyA_held = FALSE;
-		}
-		if (wParam == 'D' || wParam == 'd') {
-			keyD_held = FALSE;
-		}
-		if (wParam == 'W' || wParam == 'w') {
-			keyW_held = FALSE;
-		}
-		if (wParam == 'S' || wParam == 's') {
-			keyS_held = FALSE;
-		}
+		if (wParam == VK_SPACE) keySpacja_held = FALSE;
+		if (wParam == VK_CONTROL) keyCTRL_held = FALSE;
+		if (wParam == 'A' || wParam == 'a') keyA_held = FALSE;
+		if (wParam == 'D' || wParam == 'd') keyD_held = FALSE;
+		if (wParam == 'W' || wParam == 'w') keyW_held = FALSE;
+		if (wParam == 'S' || wParam == 's') keyS_held = FALSE;
 	}
 	break;
 
-	// Mouse input for Orbit (LMB) and Pan (RMB)
-	case WM_LBUTTONDOWN: // Start Orbiting
-		isResettingCamera = FALSE;
-		lastMouseX = LOWORD(lParam);
-		lastMouseY = HIWORD(lParam);
-		isRotating = TRUE;
-		SetCapture(hWnd); // Capture mouse input
-		break;
-
+	// --- Mouse Input Modified ---
 	case WM_RBUTTONDOWN: // Start Panning
 		isResettingCamera = FALSE;
 		lastMouseX = LOWORD(lParam);
 		lastMouseY = HIWORD(lParam);
 		isPanning = TRUE;
-		SetCapture(hWnd); // Capture mouse input
-		break;
-
-	case WM_MOUSEMOVE:
-		if (wParam & MK_LBUTTON) // Left button down (Orbiting)
-		{
-			if (isRotating) {
-				int x = LOWORD(lParam);
-				int y = HIWORD(lParam);
-
-				// Calculate change in position
-				int dx = x - lastMouseX;
-				int dy = y - lastMouseY;
-
-				// Update camera angles
-				cameraAngleY += (GLfloat)dx * 0.5f; // Yaw
-				cameraAngleX += (GLfloat)dy * 0.5f; // Pitch
-
-				// Keep angles within 0-360 range
-				cameraAngleY = fmodf(cameraAngleY, 360.0f);
-				cameraAngleX = fmodf(cameraAngleX, 360.0f);
-
-				lastMouseX = x;
-				lastMouseY = y;
-
-				InvalidateRect(hWnd, NULL, FALSE);
-			}
-		}
-		else if (wParam & MK_RBUTTON) // Right button down (Panning)
-		{
-			if (isPanning) {
-				int x = LOWORD(lParam);
-				int y = HIWORD(lParam);
-
-				// Calculate change in position
-				int dx = x - lastMouseX;
-				int dy = y - lastMouseY;
-
-				// Pan/Translate (a factor of 0.2 is a good starting sensitivity)
-				cameraPanX += (GLfloat)dx * 0.2f;
-				cameraPanY -= (GLfloat)dy * 0.2f; // Invert Y because screen Y increases downwards
-
-				lastMouseX = x;
-				lastMouseY = y;
-
-				InvalidateRect(hWnd, NULL, FALSE);
-			}
-		}
-		break;
-
-	case WM_LBUTTONUP: // Stop Orbiting
-		isRotating = FALSE;
-		ReleaseCapture();
+		SetCapture(hWnd);
 		break;
 
 	case WM_RBUTTONUP: // Stop Panning
@@ -1142,47 +1087,91 @@ LRESULT CALLBACK WndProc(HWND    hWnd,
 		ReleaseCapture();
 		break;
 
-	case WM_MOUSEWHEEL: // Zoom with mouse wheel
+	case WM_MOUSEMOVE:
+	{
+		if (isCursorLocked)
+		{
+			RECT rect;
+			GetClientRect(hWnd, &rect);
+			int centerX = (rect.right - rect.left) / 2;
+			int centerY = (rect.bottom - rect.top) / 2;
+
+			int x = LOWORD(lParam);
+			int y = HIWORD(lParam);
+
+			if (x == centerX && y == centerY)
+				break;
+
+			if (isFirstMouse) {
+				POINT pt = { centerX, centerY };
+				ClientToScreen(hWnd, &pt);
+				SetCursorPos(pt.x, pt.y);
+				isFirstMouse = FALSE;
+				break;
+			}
+
+			int dx = x - centerX;
+			int dy = y - centerY;
+
+			if (dx != 0 || dy != 0) isResettingCamera;
+
+			if (wParam & MK_RBUTTON)
+			{
+				cameraPanX += (GLfloat)dx * 0.2f;
+				cameraPanY -= (GLfloat)dy * 0.2f;
+			}
+			else
+			{
+				cameraAngleY += (GLfloat)dx * 0.2f; // Yaw
+				cameraAngleX += (GLfloat)dy * 0.2f; // Pitch
+
+				while (cameraAngleY >= 360.0f) cameraAngleY -= 360.0f;
+				while (cameraAngleY < 0.0f) cameraAngleY += 360.0f;
+
+				if (cameraAngleX > 89.0f) cameraAngleX = 89.0f;
+				if (cameraAngleX < -89.0f) cameraAngleX = -89.0f;
+			}
+			POINT pt = { centerX, centerY };
+			ClientToScreen(hWnd, &pt);
+			SetCursorPos(pt.x, pt.y);
+
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+		else
+		{
+			lastMouseX = LOWORD(lParam);
+			lastMouseY = HIWORD(lParam);
+		}
+	}
+	break;
+
+	case WM_MOUSEWHEEL: // Zoom
 	{
 		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-		// Zoom in/out based on wheel direction
 		cameraDistance -= (float)zDelta / 10.0f;
-
-		// Clamp the distance
 		if (cameraDistance < 20.0f) cameraDistance = 20.0f;
 		if (cameraDistance > 500.0f) cameraDistance = 500.0f;
-
 		InvalidateRect(hWnd, NULL, FALSE);
 	}
 	break;
 
-	// A menu command
 	case WM_COMMAND:
 	{
 		switch (LOWORD(wParam))
 		{
-			// Exit the program
 		case ID_FILE_EXIT:
 			DestroyWindow(hWnd);
 			break;
-
-			// Display the about box
 		case ID_HELP_ABOUT:
-			DialogBox(hInstance,
-				MAKEINTRESOURCE(IDD_DIALOG_ABOUT),
-				hWnd,
-				(DLGPROC)AboutDlgProc);
+			DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG_ABOUT), hWnd, (DLGPROC)AboutDlgProc);
 			break;
 		}
 	}
 	break;
 
-
-	default:   // Passes it on if unproccessed
+	default:
 		return (DefWindowProc(hWnd, message, wParam, lParam));
-
 	}
-
 	return (0L);
 }
 

@@ -1,2 +1,3 @@
 ﻿  GL_template.cpp
-  Lazik.vcxproj -> C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\x64\Debug\Lazik.exe
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(287,20): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+  Lazik.vcxproj -> C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\x64\Debug\Lazik.exe
