@@ -62,6 +62,7 @@ static BOOL isPanning = FALSE;
 static BOOL isCursorLocked = TRUE;
 
 static BOOL isResettingCamera = FALSE;
+static ULONGLONG resetStartTime = 0;
 // --- End New Camera Variables ---
 
 // --- Tilt Variables ---
@@ -70,6 +71,7 @@ static GLfloat pitchAngle = 0.0f;
 
 static const GLfloat maxSteeringAngle = 10.0f;
 static const GLfloat maxPitchAngle = 10.0f;
+static const GLfloat tiltSmoothing = 0.1f;
 
 static const GLfloat steeringSpeed = 7.0f;
 static GLfloat currentWheelSpeed = 0.0f;
@@ -86,8 +88,13 @@ struct UFOPosition {
 
 static UFOPosition ufoPos = { 0.0f, 0.0f, 0.0f };
 
-static GLfloat ufoMoveSpeed = 2.0f;
-static GLfloat ufoFlySpeed = 1.0f;
+static GLfloat ufoVelX = 0.0f;
+static GLfloat ufoVelY = 0.0f;
+static GLfloat ufoVelZ = 0.0f;
+
+static const GLfloat acceleration = 0.15f;
+static const GLfloat friction = 0.96f;
+static const GLfloat ufoMaxSpeed = 4.0f;
 static GLfloat ufoMinHeight = 10.0f;
 // --- End UFO Movement Variables ---
 
@@ -942,76 +949,67 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			changed = TRUE;
 		}
 
-		if (keySpacja_held) {
-			ufoPos.y += ufoFlySpeed;
-			changed = TRUE;
+		if (keySpacja_held) ufoVelY += acceleration;
+		else if (keyCTRL_held) ufoVelY -= acceleration;
+
+		if (ufoPos.y < ufoMinHeight) {
+			ufoPos.y = ufoMinHeight;
+			ufoVelY = 0;
 		}
-		if (keyCTRL_held) {
-			ufoPos.y -= ufoFlySpeed;
-			if (ufoPos.y < ufoMinHeight) {
-				ufoPos.y = ufoMinHeight;
-			}
-			changed = TRUE;
+
+		if (ufoPos.y < ufoMinHeight) {
+			ufoPos.y = ufoMinHeight;
+			ufoVelY = 0;
 		}
 
 		if (keyA_held) {
-			ufoPos.x -= ufoMoveSpeed;
+			ufoVelX -= acceleration;
 			steeringAngle += steeringSpeed * 0.1f;
-			if (steeringAngle > maxSteeringAngle) steeringAngle = maxSteeringAngle;
-			changed = TRUE;
 		}
 		else if (keyD_held) {
-			ufoPos.x += ufoMoveSpeed;
+			ufoVelX += acceleration;
 			steeringAngle -= steeringSpeed * 0.1f;
-			if (steeringAngle < -maxSteeringAngle) steeringAngle = -maxSteeringAngle;
-			changed = TRUE;
 		}
-		else {
-			if (fabs(steeringAngle) > 0.5f) {
-				if (steeringAngle > 0) {
-					steeringAngle -= steeringSpeed * 0.1f;
-					if (steeringAngle < 0.0f) steeringAngle = 0.0f;
-				}
-				else {
-					steeringAngle += steeringSpeed * 0.1f;
-					if (steeringAngle > 0.0f) steeringAngle = 0.0f;
-				}
-				changed = TRUE;
-			}
-			else if (steeringAngle != 0.0f) {
-				steeringAngle = 0.0f;
-				changed = TRUE;
-			}
-		}
-
+		
 		if (keyW_held) {
-			ufoPos.z -= ufoMoveSpeed;
+			ufoVelZ -= acceleration;
 			pitchAngle -= steeringSpeed * 0.1f;
-			if (pitchAngle < -maxPitchAngle) pitchAngle = -maxPitchAngle;
-			changed = TRUE;
 		}
 		else if (keyS_held) {
-			ufoPos.z += ufoMoveSpeed;
+			ufoVelZ += acceleration;
 			pitchAngle += steeringSpeed * 0.1f;
-			if (pitchAngle > maxPitchAngle) pitchAngle = maxPitchAngle;
-			changed = TRUE;
 		}
-		else {
-			if (fabs(pitchAngle) > 0.5f) {
-				if (pitchAngle > 0) {
-					pitchAngle -= steeringSpeed * 0.1f;
-					if (pitchAngle < 0.0f) pitchAngle = 0.0f;
-				}
-				else {
-					pitchAngle += steeringSpeed * 0.1f;
-					if (pitchAngle > 0.0f) pitchAngle = 0.0f;
-				}
-				changed = TRUE;
-			}
-			else if (pitchAngle != 0.0f) {
-				pitchAngle = 0.0f;
-				changed = TRUE;
-			}
+
+		ufoVelX *= friction;
+		ufoVelY *= friction;
+		ufoVelZ *= friction;
+
+		if (ufoVelX > ufoMaxSpeed)  ufoVelX = ufoMaxSpeed;
+		if (ufoVelX < -ufoMaxSpeed) ufoVelX = -ufoMaxSpeed;
+		if (ufoVelY > ufoMaxSpeed)  ufoVelY = ufoMaxSpeed;
+		if (ufoVelY < -ufoMaxSpeed) ufoVelY = -ufoMaxSpeed;
+		if (ufoVelZ > ufoMaxSpeed)  ufoVelZ = ufoMaxSpeed;
+		if (ufoVelZ < -ufoMaxSpeed) ufoVelZ = -ufoMaxSpeed;
+
+		float targetSteer = (ufoVelX / ufoMaxSpeed) * -maxSteeringAngle;
+		float targetPitch = (ufoVelZ / ufoMaxSpeed) * maxPitchAngle;
+
+		steeringAngle += (targetSteer - steeringAngle) * tiltSmoothing;
+		pitchAngle += (targetPitch - pitchAngle) * tiltSmoothing;
+
+		ufoPos.x += ufoVelX;
+		ufoPos.y += ufoVelY;
+		ufoPos.z += ufoVelZ;
+
+		if (!keyA_held && !keyD_held) {
+			steeringAngle *= 0.9f;
+		}
+		if (!keyW_held && !keyS_held) {
+			pitchAngle *= 0.9f;
+		}
+
+		if (fabs(ufoVelX) > 0.01f || fabs(ufoVelY) > 0.01f || fabs(ufoVelZ) > 0.01f || changed) {
+			changed = TRUE;
 		}
 
 		if (isResettingCamera) {
@@ -1057,7 +1055,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (wParam == 'S' || wParam == 's') { keyS_held = TRUE; keyW_held = FALSE; changed = TRUE; }
 		if (wParam == 'A' || wParam == 'a') { keyA_held = TRUE; keyD_held = FALSE; changed = TRUE; }
 		if (wParam == 'D' || wParam == 'd') { keyD_held = TRUE; keyA_held = FALSE; changed = TRUE; }
-		if (wParam == 'R' || wParam == 'r') { isResettingCamera = TRUE; changed = TRUE; }
+		if (wParam == 'R' || wParam == 'r') { isResettingCamera = TRUE; resetStartTime = GetTickCount64(); changed = TRUE; }
 		if (changed) InvalidateRect(hWnd, NULL, FALSE);
 	}
 	break;
@@ -1113,7 +1111,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int dx = x - centerX;
 			int dy = y - centerY;
 
-			if (dx != 0 || dy != 0) isResettingCamera;
+			if ((dx != 0 || dy != 0) && (GetTickCount64() - resetStartTime > 200)) {
+				isResettingCamera = FALSE;
+			}
 
 			if (wParam & MK_RBUTTON)
 			{
@@ -1125,12 +1125,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				cameraAngleY += (GLfloat)dx * 0.2f; // Yaw
 				cameraAngleX += (GLfloat)dy * 0.2f; // Pitch
 
-				while (cameraAngleY >= 360.0f) cameraAngleY -= 360.0f;
-				while (cameraAngleY < 0.0f) cameraAngleY += 360.0f;
+				if (cameraAngleY > 180.0f) cameraAngleY -= 360.0f;
+				if (cameraAngleY < -180.0f) cameraAngleY += 360.0f;
 
 				if (cameraAngleX > 89.0f) cameraAngleX = 89.0f;
 				if (cameraAngleX < -89.0f) cameraAngleX = -89.0f;
 			}
+
 			POINT pt = { centerX, centerY };
 			ClientToScreen(hWnd, &pt);
 			SetCursorPos(pt.x, pt.y);
@@ -1139,8 +1140,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else
 		{
-			lastMouseX = LOWORD(lParam);
-			lastMouseY = HIWORD(lParam);
+			int x = LOWORD(lParam);
+			int y = HIWORD(lParam);
+
+			if ((x != lastMouseX || y != lastMouseY) && (GetTickCount64() - resetStartTime > 200)) {
+				isResettingCamera = FALSE;
+			}
+
+			lastMouseX = x;
+			lastMouseY = y;
 		}
 	}
 	break;
