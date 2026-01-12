@@ -1,0 +1,4 @@
+﻿  GL_template.cpp
+C:\Users\przem\Desktop\Nowy folder\Grafika-komputerowa-azik-main\Lazik\Lazik\GL_template.cpp(308,20): warning C4267: "argument": konwersja z "size_t" do "GLsizei", możliwa utrata danych
+C:\Users\przem\Desktop\Nowy folder\Grafika-komputerowa-azik-main\Lazik\Lazik\GL_template.cpp(608,13): warning C4244: "return": konwersja z "double" do "float", możliwa utrata danych
+  Lazik.vcxproj -> C:\Users\przem\Desktop\Nowy folder\Grafika-komputerowa-azik-main\Lazik\x64\Debug\Lazik.exe
