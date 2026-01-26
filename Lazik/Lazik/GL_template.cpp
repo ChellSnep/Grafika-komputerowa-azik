@@ -111,6 +111,11 @@ BITMAPINFOHEADER	bitmapInfoHeader;	// nag��wek obrazu
 unsigned char* bitmapData = NULL;			// dane tekstury
 unsigned int		texture[2];			// obiekt tekstury
 
+// Teren
+GLfloat GetTerrainHeight(GLfloat x, GLfloat z) {
+	return 3.0f * sinf(x * 0.08f) * cosf(z * 0.08f) +
+		2.0f * sinf(x * 0.15f + z * 0.15f);
+}
 
 // Declaration for Window procedure
 LRESULT CALLBACK WndProc(HWND    hWnd,
@@ -167,86 +172,70 @@ void SetupRC()
 
 unsigned char* LoadBitmapFile(const char* filename, BITMAPINFOHEADER* bitmapInfoHeader)
 {
-	FILE* filePtr;							// wskaźnik pozycji pliku
-	BITMAPFILEHEADER	bitmapFileHeader;	// nagłówek pliku
-	unsigned char* bitmapImage = NULL;	// dane obrazu
-	int					imageIdx = 0;		// licznik pikseli
-	unsigned char		tempRGB;			// zmienna zamiany składowych
+	FILE* filePtr = NULL;
+	BITMAPFILEHEADER bitmapFileHeader;
 
-	// otwiera plik w trybie "read binary"
-	// FIX: Use "rb"
 	filePtr = fopen(filename, "rb");
-	if (filePtr == NULL)
-	{
+	if (!filePtr) {
 		return NULL;
 	}
 
-	// wczytuje nagłówek pliku
-	if (fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER), 1, filePtr) != 1)
-	{
+	// Read file header
+	if (fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER), 1, filePtr) != 1) {
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// sprawdza, czy jest to plik formatu BMP
-	if (bitmapFileHeader.bfType != BITMAP_ID)
-	{
+	// Check for 'BM'
+	if (bitmapFileHeader.bfType != 0x4D42) {
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// wczytuje nagłówek obrazu
-	if (fread(bitmapInfoHeader, sizeof(BITMAPINFOHEADER), 1, filePtr) != 1)
-	{
+	// Read info header
+	if (fread(bitmapInfoHeader, sizeof(BITMAPINFOHEADER), 1, filePtr) != 1) {
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// FIX: If biSizeImage is 0, calculate it (common in older BMPs)
-	if (bitmapInfoHeader->biSizeImage == 0)
-	{
-		bitmapInfoHeader->biSizeImage = bitmapInfoHeader->biWidth * bitmapInfoHeader->biHeight * 3;
-	}
+	int width = bitmapInfoHeader->biWidth;
+	int height = abs(bitmapInfoHeader->biHeight);
+	int bpp = bitmapInfoHeader->biBitCount;
 
-	// ustawia wskaźnik pozycji pliku na początku danych obrazu
-	if (fseek(filePtr, bitmapFileHeader.bfOffBits, SEEK_SET) != 0)
-	{
+	if (width <= 0 || height <= 0 || (bpp != 24 && bpp != 32)) {
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// przydziela pamięć buforowi obrazu
-	bitmapImage = (unsigned char*)malloc(bitmapInfoHeader->biSizeImage);
+	// Move to pixel array
+	fseek(filePtr, bitmapFileHeader.bfOffBits, SEEK_SET);
 
-	// sprawdza, czy udało się przydzielić pamięć
-	if (!bitmapImage)
-	{
-		// FIX: Was: free(bitmapImage); - which is wrong if bitmapImage is NULL.
+	size_t bytesPerPixel = bpp / 8;
+	size_t rowPadded = ((width * bytesPerPixel + 3) & ~3);
+	size_t dataSize = rowPadded * height;
+
+	unsigned char* rawData = (unsigned char*)malloc(dataSize);
+	if (!rawData) {
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// wczytuje dane obrazu
-	if (fread(bitmapImage, 1, bitmapInfoHeader->biSizeImage, filePtr) != bitmapInfoHeader->biSizeImage)
-	{
-		// FIX: Error while reading data
-		free(bitmapImage);
+	// Read pixel data (BGR or BGRA)
+	if (fread(rawData, 1, dataSize, filePtr) != dataSize) {
+		free(rawData);
 		fclose(filePtr);
 		return NULL;
 	}
 
-	// zamienia miejscami składowe R i B (B G R -> R G B)
-	// This loop is correct for 24-bit (3 bytes per pixel) RGB format data.
-	for (imageIdx = 0; imageIdx < (int)bitmapInfoHeader->biSizeImage; imageIdx += 3)
-	{
-		tempRGB = bitmapImage[imageIdx];
-		bitmapImage[imageIdx] = bitmapImage[imageIdx + 2];
-		bitmapImage[imageIdx + 2] = tempRGB;
-	}
-
-	// zamyka plik i zwraca wskaźnik bufora zawierającego wczytany obraz
 	fclose(filePtr);
-	return bitmapImage;
+
+	// OpenGL requires textures stored bottom-up → BMP stores bottom-up
+	// NOTHING needs to be flipped.
+
+	// We return raw BGR data; OpenGL will use GL_BGR_EXT
+	bitmapInfoHeader->biSizeImage = dataSize;
+
+	return rawData;
 }
 
 GLuint base;
@@ -300,7 +289,7 @@ void Spodek(void) {
 
 	glDisable(GL_CULL_FACE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	
+
 	GLfloat radius = 60.0f;
 	int segments = 64;
 
@@ -310,13 +299,13 @@ void Spodek(void) {
 	glVertex3d(0.0f, 0.0f, 0.0f);
 	for (int i = 0; i <= segments; i++) {
 		GLfloat angle = 2.0f * GL_PI * (float)i / (float)segments;
-
 		GLfloat x = radius * cosf(angle);
 		GLfloat z = radius * sinf(angle);
-
 		glVertex3f(x, 0.0f, z);
 	}
 	glEnd();
+
+	glPopMatrix();
 }
 
 void Spod(void) {
@@ -607,13 +596,62 @@ void DrawGrid() {
 	glPopMatrix();
 }
 
+void DrawTerrain() {
+	glPushMatrix();
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+
+	// Disable lighting if it interferes
+	glDisable(GL_LIGHTING);
+
+	const GLfloat step = 20.0f;
+	const GLfloat tileSize = 40.0f;
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+	// IMPORTANT: Set to REPLACE mode to see texture clearly
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+	// No color tinting - let texture show through
+	glColor3f(1.0f, 1.0f, 1.0f);
+
+	for (float x = -500; x < 500; x += step) {
+		for (float z = -500; z < 500; z += step) {
+
+			GLfloat h1 = GetTerrainHeight(x, z);
+			GLfloat h2 = GetTerrainHeight(x + step, z);
+			GLfloat h3 = GetTerrainHeight(x + step, z + step);
+			GLfloat h4 = GetTerrainHeight(x, z + step);
+
+			GLfloat u1 = x / tileSize;
+			GLfloat v1 = z / tileSize;
+			GLfloat u2 = (x + step) / tileSize;
+			GLfloat v2 = (z + step) / tileSize;
+
+			glBegin(GL_QUADS);
+			glTexCoord2f(u1, v1); glVertex3f(x, h1, z);
+			glTexCoord2f(u2, v1); glVertex3f(x + step, h2, z);
+			glTexCoord2f(u2, v2); glVertex3f(x + step, h3, z + step);
+			glTexCoord2f(u1, v2); glVertex3f(x, h4, z + step);
+			glEnd();
+		}
+	}
+
+	// Reset to MODULATE for other objects
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+}
+
 void RenderScene(void)
 {
 	// Clear the window with current clearing color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity(); // Reset the modelview matrix
+	glLoadIdentity();
 
 	// --- Camera Setup  ---
 	glTranslatef(0.0f, 0.0f, -cameraDistance);
@@ -625,13 +663,14 @@ void RenderScene(void)
 	glTranslatef(-ufoPos.x, -ufoPos.y, -ufoPos.z);
 	// --- End Camera Setup ---
 
-	// --- Teren
-	DrawGrid();
+	// --- Draw Terrain
+	DrawTerrain();
 
-	glPolygonMode(GL_BACK, GL_LINE);
+	// --- Draw UFO
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // Ensure fill mode
+	glEnable(GL_DEPTH_TEST);
 
 	glPushMatrix();
-
 	glTranslatef(ufoPos.x, ufoPos.y, ufoPos.z);
 	glRotatef(steeringAngle, 0.0f, 0.0f, 1.0f);
 	glRotatef(pitchAngle, 1.0f, 0.0f, 0.0f);
@@ -662,7 +701,6 @@ void RenderScene(void)
 	glPrint("R - resetowanie kamery");
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_TEXTURE_2D);
 
 	glPopMatrix();
 	glMatrixMode(GL_PROJECTION);
@@ -670,7 +708,6 @@ void RenderScene(void)
 	glMatrixMode(GL_MODELVIEW);
 	//--- End Text Rendering ---
 
-	glMatrixMode(GL_MODELVIEW);
 	glFlush();
 }
 
@@ -779,6 +816,62 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 // Entry point of all Windows programs
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
+	// DIAGNOSTYKA: pokaż ścieżkę, fopen, i nagłówki BMP
+	char exePath[MAX_PATH];
+	char exeDir[MAX_PATH];
+	char resourcePath[MAX_PATH];
+
+	GetModuleFileNameA(NULL, exePath, MAX_PATH);
+	strcpy_s(exeDir, MAX_PATH, exePath);
+	char* lastSlash = strrchr(exeDir, '\\');
+	if (lastSlash) *lastSlash = '\0';
+	_snprintf_s(resourcePath, MAX_PATH, _TRUNCATE, "%s\\Resources\\water.bmp", exeDir);
+
+	{
+		char msg[MAX_PATH * 2];
+		sprintf_s(msg, sizeof(msg), "Trying to load (full path):\n%s\n\nWorking directory:\n", resourcePath);
+		char cwd[MAX_PATH]; GetCurrentDirectoryA(MAX_PATH, cwd);
+		strcat_s(msg, sizeof(msg), cwd);
+		MessageBoxA(NULL, msg, "Diag: paths", MB_OK);
+	}
+
+	// fopen_s test
+	FILE* f = NULL;
+	errno_t ferr = fopen_s(&f, resourcePath, "rb");
+	if (ferr != 0 || f == NULL) {
+		char msg[200];
+		sprintf_s(msg, sizeof(msg), "fopen_s FAILED (errno = %d). File cannot be opened by this process.", ferr);
+		MessageBoxA(NULL, msg, "Diag: fopen", MB_OK | MB_ICONERROR);
+	}
+	else {
+		// if file opened, read headers
+		BITMAPFILEHEADER bf;
+		BITMAPINFOHEADER bi;
+		size_t nread = fread(&bf, 1, sizeof(bf), f);
+		nread += fread(&bi, 1, sizeof(bi), f);
+		// rewind just in case
+		fseek(f, 0, SEEK_SET);
+
+		char hdrmsg[400];
+		sprintf_s(hdrmsg, sizeof(hdrmsg),
+			"fopen_s SUCCEEDED.\n\nbfType = 0x%04X\nbfOffBits = %u\n\nbiWidth = %d\nbiHeight = %d\nbiBitCount = %u\nbiSizeImage = %u\nbiCompression = %u",
+			bf.bfType, bf.bfOffBits, bi.biWidth, bi.biHeight, bi.biBitCount, bi.biSizeImage, bi.biCompression);
+
+		MessageBoxA(NULL, hdrmsg, "Diag: BMP header", MB_OK);
+
+		fclose(f);
+	}
+
+	// Teraz spróbuj załadować normalnie i pokaż czy LoadBitmapFile zwróci NULL
+	unsigned char* testBitmap = LoadBitmapFile(resourcePath, &bitmapInfoHeader);
+	if (testBitmap == NULL) {
+		MessageBoxA(NULL, "LoadBitmapFile returned NULL (wczytywanie nie powiodło się).", "Diag: loader", MB_OK | MB_ICONERROR);
+	}
+	else {
+		MessageBoxA(NULL, "LoadBitmapFile SUCCEEDED.", "Diag: loader", MB_OK);
+		free(testBitmap);
+	}
+
 	MSG msg;			// Windows message structure
 	WNDCLASS wc;		// Windows class structure
 	HWND hWnd;          // Storeage for window handle
@@ -847,51 +940,196 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+
 	case WM_CREATE:
+	{
 		hDC = GetDC(hWnd);
 		SetDCPixelFormat(hDC);
 		hPalette = GetOpenGLPalette(hDC);
 
-		// Create the rendering context and make it current
 		hRC = wglCreateContext(hDC);
-		if (!wglMakeCurrent(hDC, hRC)) {}
+		wglMakeCurrent(hDC, hRC);
 
 		SetupRC();
 		BuildFont(hDC);
-		glGenTextures(2, &texture[0]);
 
-		if (isCursorLocked) ShowCursor(FALSE);
+		// Generate TWO textures
+		glGenTextures(2, texture);
 
-		// Load Textures
-		bitmapData = LoadBitmapFile("checker.bmp", &bitmapInfoHeader);
-		if (bitmapData != NULL) {
+		// Load water.bmp for terrain (texture[0])
+		bitmapData = LoadBitmapFile("..\\Resources\\water.bmp", &bitmapInfoHeader);
+		if (bitmapData)
+		{
 			glBindTexture(GL_TEXTURE_2D, texture[0]);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, bitmapInfoHeader.biWidth,
-				bitmapInfoHeader.biHeight, GL_RGB, GL_UNSIGNED_BYTE, bitmapData);
+
+			// <- WAŻNE: wyrównanie
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			if (bitmapInfoHeader.biBitCount == 24) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGR_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+			else if (bitmapInfoHeader.biBitCount == 32) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+
 			free(bitmapData);
 			bitmapData = NULL;
+
+			MessageBoxA(NULL, "water.bmp loaded successfully!", "Success", MB_OK);
+		}
+		else
+		{
+			MessageBoxA(NULL, "water.bmp NOT FOUND! Using fallback texture.", "Warning", MB_OK);
+			// Create fallback blue checkerboard texture
+			const int size = 64;
+			unsigned char* checkerboard = (unsigned char*)malloc(size * size * 3);
+			for (int i = 0; i < size; i++) {
+				for (int j = 0; j < size; j++) {
+					// Check if this square is dark or light
+					int isDark = ((i & 0x8) == 0) ^ ((j & 0x8) == 0);
+
+					if (isDark) {
+						// Dark blue: RGB(30, 80, 150)
+						checkerboard[(i * size + j) * 3 + 0] = 30;   // Red
+						checkerboard[(i * size + j) * 3 + 1] = 80;   // Green
+						checkerboard[(i * size + j) * 3 + 2] = 150;  // Blue
+					}
+					else {
+						// Light blue: RGB(100, 180, 255)
+						checkerboard[(i * size + j) * 3 + 0] = 100;  // Red
+						checkerboard[(i * size + j) * 3 + 1] = 180;  // Green
+						checkerboard[(i * size + j) * 3 + 2] = 255;  // Blue
+					}
+				}
+			}
+			glBindTexture(GL_TEXTURE_2D, texture[0]);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			if (bitmapInfoHeader.biBitCount == 24) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGR_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+			else if (bitmapInfoHeader.biBitCount == 32) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+			free(checkerboard);
 		}
 
-		bitmapData = LoadBitmapFile("wheels.bmp", &bitmapInfoHeader);
-		if (bitmapData != NULL) {
+		// Load chrome.bmp for UFO (texture[1]) - or create a simple default texture
+		bitmapData = LoadBitmapFile("..\\Resources\\chrome.bmp", &bitmapInfoHeader);
+		if (bitmapData)
+		{
 			glBindTexture(GL_TEXTURE_2D, texture[1]);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, bitmapInfoHeader.biWidth,
-				bitmapInfoHeader.biHeight, GL_RGB, GL_UNSIGNED_BYTE, bitmapData);
+
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			if (bitmapInfoHeader.biBitCount == 24) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGR_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+			else if (bitmapInfoHeader.biBitCount == 32) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+					(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+					0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, bitmapData);
+			}
+
 			free(bitmapData);
 			bitmapData = NULL;
 		}
+		else
+		{
+			// Create a simple white texture as fallback
+			glBindTexture(GL_TEXTURE_2D, texture[1]);
+			unsigned char whiteTexture[3] = { 255, 255, 255 };
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, whiteTexture);
+		}
+
+		// --- Start: debug i bezpieczne ładowanie tekstury water.bmp ---
+		char exePath[MAX_PATH];
+		char exeDir[MAX_PATH];
+		char resourcePath[MAX_PATH];
+
+		// Pobierz pełną ścieżkę do uruchamianego pliku .exe
+		GetModuleFileNameA(NULL, exePath, MAX_PATH);
+
+		// Wytnij nazwę pliku .exe, zostaje katalog
+		strcpy_s(exeDir, MAX_PATH, exePath);
+		char* lastSlash = strrchr(exeDir, '\\');
+		if (lastSlash) *lastSlash = '\0';
+
+		// Złóż ścieżkę do Resources\water.bmp obok exe
+		_snprintf_s(resourcePath, MAX_PATH, _TRUNCATE, "%s\\Resources\\water.bmp", exeDir);
+
+		// Pokaż ścieżkę w okienku — ułatwia debug
+		MessageBoxA(NULL, resourcePath, "Trying to load (full path)", MB_OK);
+
+		// Dodatkowy test: czy plik w ogóle istnieje (fopen)
+		FILE* ftest = fopen(resourcePath, "rb");
+		if (ftest) {
+			fclose(ftest);
+		}
+		else {
+			// Jeśli nie istnieje, pokaż też bieżący katalog roboczy procesu
+			char cwd[MAX_PATH];
+			GetCurrentDirectoryA(MAX_PATH, cwd);
+			char msg[MAX_PATH * 2];
+			_snprintf_s(msg, sizeof(msg), _TRUNCATE,
+				"File not found at:\n%s\n\nCurrent working directory:\n%s",
+				resourcePath, cwd);
+			MessageBoxA(NULL, msg, "File NOT FOUND", MB_OK | MB_ICONWARNING);
+		}
+
+		// Teraz używamy resourcePath do załadowania bitmapy
+		bitmapData = LoadBitmapFile(resourcePath, &bitmapInfoHeader);
+		if (bitmapData) {
+			// ... (twój istniejący kod inicjujący teksturę)
+			glBindTexture(GL_TEXTURE_2D, texture[0]);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+				(GLsizei)bitmapInfoHeader.biWidth, (GLsizei)abs(bitmapInfoHeader.biHeight),
+				0, GL_RGB, GL_UNSIGNED_BYTE, bitmapData);
+
+			free(bitmapData);
+			bitmapData = NULL;
+			MessageBoxA(NULL, "water.bmp loaded successfully!", "Success", MB_OK);
+		}
+		else {
+			MessageBoxA(NULL, "water.bmp NOT FOUND at resourcePath! Using fallback texture.", "Warning", MB_OK);
+			// ... (twój fallback checkerboard)
+		}
+		// --- End: debug i bezpieczne ładowanie tekstury water.bmp ---
+
 
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		SetTimer(hWnd, 1, 10, NULL);
 		break;
+	}
 
 	case WM_DESTROY:
 		KillFont();

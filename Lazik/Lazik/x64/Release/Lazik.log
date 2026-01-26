@@ -1,0 +1,2 @@
+﻿MSVCRT.lib(exe_main.obj) : error LNK2001: nierozpoznany symbol zewnętrzny main
+C:\Users\ikopl\source\repos\Grafika-komputerowa-lazik\Lazik\x64\Release\Lazik.exe : fatal error LNK1120: liczba nierozpoznanych elementów zewnętrznych: 1
