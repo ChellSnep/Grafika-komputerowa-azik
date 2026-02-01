@@ -126,7 +126,40 @@ static BOOL keyCTRL_held = FALSE;
 #define ID_BUTTON_START 101
 static BOOL isGameRunning = FALSE;
 static HWND hButtonStart = NULL;
+static ULONGLONG gameStartTime = 0;
 // --- End Menu Start Variables ---
+
+// --- Point Variables ---
+struct Point {
+	GLfloat x, y, z;
+	BOOL active;
+	GLfloat animationAngle;
+};
+
+#define POINT_COUNT 10
+static Point points[POINT_COUNT];
+static const int numPoints = POINT_COUNT;
+static const GLfloat pointRadius = 15.0f;
+static int score = 0;
+// --- End Point Variables ---
+
+// --- Player Variables ---
+#define ID_EDIT_NAME 102
+static HWND hEditName = NULL;
+static char playerName[100] = "Gracz";
+// --- End Player Variables ---
+
+// --- High Score Variables ---
+struct HighScoreEntry {
+	char name[100];
+	int minutes;
+	int seconds;
+	int totalTimeInSeconds;
+};
+
+static HighScoreEntry topScores[5];
+static int topScoresCount = 0;
+// --- End High Score Variables ---
 
 // Opis tekstury
 BITMAPINFOHEADER	bitmapInfoHeader;	// nagwek obrazu
@@ -202,6 +235,58 @@ void InitObstacles() {
 
 		obstacles[i].radius = 40.0f + (float)(rand() % 50);
 		obstacles[i].height = 80.0f + (float)(rand() % 150);
+	}
+}
+
+void InitPoints() {
+	float safeMargin = 60.0f;
+	float minHeightAboveGround = 20.0f;
+	float maxHeightAboveGround = 250.0f;
+
+	for (int i = 0; i < numPoints; i++) {
+		float newX, newZ;
+		BOOL collides;
+
+		do {
+			collides = FALSE;
+			newX = (float)(rand() % 1400 - 700);
+			newZ = (float)(rand() % 1400 - 700);
+
+			for (int j = 0; j < numObstacles; j++) {
+				float dx = newX - obstacles[j].x;
+				float dz = newZ - obstacles[j].z;
+				float dist = sqrtf(dx * dx + dz * dz);
+
+				if (dist < (obstacles[j].radius + safeMargin)) {
+					collides = TRUE;
+					break;
+				}
+			}
+
+			if (!collides) {
+				for (int k = 0; k < i; k++) {
+					float dx = newX - points[k].x;
+					float dz = newZ - points[k].z;
+					float dist = sqrtf(dx * dx + dz * dz);
+					if (dist < 40.0f) {
+						collides = TRUE;
+						break;
+					}
+				}
+			}
+
+		} while (collides);
+
+		points[i].x = newX;
+		points[i].z = newZ;
+
+		float terrainLevel = GetTerrainHeight(newX, newZ);
+		float randomHeight = minHeightAboveGround + (float)(rand() % (int)(maxHeightAboveGround - minHeightAboveGround));
+
+		points[i].y = terrainLevel + randomHeight;
+
+		points[i].active = TRUE;
+		points[i].animationAngle = (float)(rand() % 360);
 	}
 }
 
@@ -287,33 +372,31 @@ unsigned char* LoadBitmapFile(const char* filename, BITMAPINFOHEADER* bitmapInfo
 }
 
 GLuint base;
+GLuint baseLarge;
 
 GLvoid BuildFont(HDC hDC) {
 	HFONT hFont;
+
 	base = glGenLists(96);
-
-	hFont = CreateFont(-14,
-		0,
-		0,
-		0,
-		FW_BOLD,
-		FALSE,
-		FALSE,
-		FALSE,
-		ANSI_CHARSET,
-		OUT_TT_PRECIS,
-		CLIP_DEFAULT_PRECIS,
-		ANTIALIASED_QUALITY,
-		FF_DONTCARE | DEFAULT_PITCH,
-		"Courier New");
-
+	hFont = CreateFont(-14, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET,
+		OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+		FF_DONTCARE | DEFAULT_PITCH, "Courier New");
 	SelectObject(hDC, hFont);
 	wglUseFontBitmaps(hDC, 32, 96, base);
+	DeleteObject(hFont);
+
+	baseLarge = glGenLists(96);
+	hFont = CreateFont(-28, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET,
+		OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+		FF_DONTCARE | DEFAULT_PITCH, "Courier New");
+	SelectObject(hDC, hFont);
+	wglUseFontBitmaps(hDC, 32, 96, baseLarge);
 	DeleteObject(hFont);
 }
 
 GLvoid KillFont(GLvoid) {
 	glDeleteLists(base, 96);
+	glDeleteLists(baseLarge, 96);
 }
 
 GLvoid glPrint(const char* fmt, ...) {
@@ -328,6 +411,22 @@ GLvoid glPrint(const char* fmt, ...) {
 
 	glPushAttrib(GL_LIST_BIT);
 	glListBase(base - 32);  // Sets The Base Character to 32
+	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);
+	glPopAttrib();
+}
+
+GLvoid glPrintLarge(const char* fmt, ...) {
+	char text[256];
+	va_list ap;
+
+	if (fmt == NULL) return;
+
+	va_start(ap, fmt);
+	vsprintf(text, fmt, ap);
+	va_end(ap);
+
+	glPushAttrib(GL_LIST_BIT);
+	glListBase(baseLarge - 32);
 	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);
 	glPopAttrib();
 }
@@ -721,6 +820,99 @@ void DrawObstacles() {
 	}
 }
 
+void DrawPoints() {
+	glDisable(GL_TEXTURE_2D);
+
+	glColor3f(1.0f, 0.85f, 0.0f);
+
+	GLfloat mat_ambient[] = { 0.25f, 0.20f, 0.08f, 1.0f };
+	GLfloat mat_diffuse[] = { 0.75f, 0.60f, 0.23f, 1.0f };
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+
+	for (int i = 0; i < numPoints; i++) {
+		if (points[i].active) {
+			glPushMatrix();
+
+			float hover = 5.0f * sinf(points[i].animationAngle * 0.05f);
+			glTranslatef(points[i].x, points[i].y + hover, points[i].z);
+
+			glRotatef(points[i].animationAngle, 0.0f, 1.0f, 0.0f);
+
+			GLUquadricObj* q = gluNewQuadric();
+			gluSphere(q, pointRadius, 16, 16);
+			gluDeleteQuadric(q);
+
+			glPopMatrix();
+
+			points[i].animationAngle += 2.0f;
+		}
+	}
+}
+
+void LoadTopScores() {
+	FILE* fp = fopen("wyniki.txt", "r");
+	if (!fp) {
+		topScoresCount = 0;
+		return;
+	}
+
+	// Tymczasowa tablica na wszystkie wyniki
+	struct HighScoreEntry allScores[100];
+	int count = 0;
+	char line[256];
+
+	while (fgets(line, sizeof(line), fp) && count < 100) {
+		// Format w pliku: "Gracz: [Imie] | Czas: MM:SS"
+
+		// Szukamy separatora "|"
+		char* separator = strstr(line, "|");
+		if (separator) {
+			// Parsowanie Czasu (jest po separatorze)
+			int m, s;
+			char* timePtr = strstr(separator, "Czas: ");
+			if (timePtr) {
+				if (sscanf(timePtr + 6, "%d:%d", &m, &s) == 2) {
+					allScores[count].minutes = m;
+					allScores[count].seconds = s;
+					allScores[count].totalTimeInSeconds = m * 60 + s;
+
+					// Parsowanie Imienia
+					char* nameStart = line + 7;
+					int nameLen = (int)(separator - nameStart);
+
+					// Usuń spację przed separatorem, jeśli istnieje
+					if (nameLen > 0 && nameStart[nameLen - 1] == ' ') nameLen--;
+
+					if (nameLen > 99) nameLen = 99; // Zabezpieczenie
+					strncpy(allScores[count].name, nameStart, nameLen);
+					allScores[count].name[nameLen] = '\0'; 
+
+					count++;
+				}
+			}
+		}
+	}
+	fclose(fp);
+
+	// Sortowanie bąbelkowe
+	for (int i = 0; i < count - 1; i++) {
+		for (int j = 0; j < count - i - 1; j++) {
+			if (allScores[j].totalTimeInSeconds > allScores[j + 1].totalTimeInSeconds) {
+				struct HighScoreEntry temp = allScores[j];
+				allScores[j] = allScores[j + 1];
+				allScores[j + 1] = temp;
+			}
+		}
+	}
+
+	// Przepisanie 5 najlepszych
+	topScoresCount = (count < 5) ? count : 5;
+	for (int i = 0; i < topScoresCount; i++) {
+		topScores[i] = allScores[i];
+	}
+}
+
 void RenderScene(void)
 {
 	// Clear the window with current clearing color
@@ -740,26 +932,53 @@ void RenderScene(void)
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_TEXTURE_2D);
 
-		// Rysowanie tytułu nad przyciskiem
-		glColor3f(0.0f, 0.0f, 0.0f); // Czarny tekst
+		// --- LEWA STRONA / ŚRODEK: Tytuł i Instrukcje ---
+		glColor3f(0.0f, 0.0f, 0.0f);
 
 		const char* textLine1 = "Jak najszybciej zbierz wszystkie 10 gwiazdek!";
 		const char* textLine2 = "Wcisnij START aby rozpoczac";
 
+		int centerY = lastHeight / 2;
 		int charWidth = 9;
 
-		int text1PixelWidth = strlen(textLine1) * charWidth;
-		int text2PixelWidth = strlen(textLine2) * charWidth;
-
-		int centerY = lastHeight / 2 - 50;
-
-		// Rysowanie pierwszego napisu (Idealnie na środku)
-		glRasterPos2i((lastWidth - text1PixelWidth) / 2, centerY);
+		glRasterPos2i((lastWidth - strlen(textLine1) * 9) / 2, centerY - 100);
 		glPrint(textLine1);
 
-		// Rysowanie drugiego napisu (Idealnie na środku)
-		glRasterPos2i((lastWidth - text2PixelWidth) / 2, centerY + 100);
+		glRasterPos2i((lastWidth - strlen(textLine2) * 9) / 2, centerY - 70);
 		glPrint(textLine2);
+
+		// --- PRAWA STRONA: Tabela Wyników ---
+		if (topScoresCount > 0) {
+			int tableX = lastWidth - 250; 
+			int tableY = centerY - 100;   
+
+			glColor3f(0.0f, 0.0f, 0.5f); 
+			glRasterPos2i(tableX, tableY);
+			glPrint("TOP 5 WYNIKOW:");
+
+			tableY += 30; 
+
+			glColor3f(0.2f, 0.2f, 0.2f); 
+			for (int i = 0; i < topScoresCount; i++) {
+				char scoreRow[128];
+				sprintf(scoreRow, "%d. %s - %02d:%02d",
+					i + 1,
+					topScores[i].name,
+					topScores[i].minutes,
+					topScores[i].seconds);
+
+				glRasterPos2i(tableX, tableY);
+				glPrint(scoreRow);
+				tableY += 20;
+			}
+		}
+		else {
+			int tableX = lastWidth - 250;
+			int tableY = centerY - 100;
+			glColor3f(0.5f, 0.5f, 0.5f);
+			glRasterPos2i(tableX, tableY);
+			glPrint("Brak zapisanych wynikow.");
+		}
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -786,6 +1005,9 @@ void RenderScene(void)
 
 	// --- Draw Obstacles
 	DrawObstacles();
+
+	// --- Draw Points
+	DrawPoints();
 
 	// --- Draw UFO
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // Ensure fill mode
@@ -820,6 +1042,29 @@ void RenderScene(void)
 
 	glRasterPos2i(10, 35);
 	glPrint("R - resetowanie kamery");
+
+	ULONGLONG currentTime = GetTickCount64();
+	int totalSeconds = (int)((currentTime - gameStartTime) / 1000);
+
+	int minutes = totalSeconds / 60;
+	int seconds = totalSeconds % 60;
+
+	char timeBuffer[32];
+	sprintf(timeBuffer, "Czas: %02d:%02d", minutes, seconds);
+
+	int textWidth = strlen(timeBuffer) * 10;
+	int xPos = lastWidth - textWidth - 20;
+	glRasterPos2i(xPos, 20);
+	glPrint(timeBuffer);
+
+	char scoreBuffer[32];
+	sprintf(scoreBuffer, "Punkty %d/%d", score, numPoints);
+
+	int scoreWidth = strlen(scoreBuffer) * 16;
+	int xScorePos = lastWidth - scoreWidth - 20;
+
+	glRasterPos2i(xScorePos, 50);
+	glPrint(scoreBuffer);
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -933,6 +1178,26 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 	return hRetPal;
 }
 
+void SaveResults(int minutes, int seconds) {
+	FILE* fp = fopen("wyniki.txt", "a");
+	if (fp != NULL) {
+		fprintf(fp, "Gracz: %s | Czas: %02d:%02d\n", playerName, minutes, seconds);
+		fclose(fp);
+	}
+}
+
+void ResetGameVariables() {
+	ufoPos.x = 0.0f; ufoPos.y = 0.0f; ufoPos.z = 0.0f;
+	ufoVelX = 0.0f; ufoVelY = 0.0f; ufoVelZ = 0.0f;
+	steeringAngle = 0.0f; pitchAngle = 0.0f;
+	score = 0;
+
+	InitPoints();
+
+	cameraAngleX = 0.0f; cameraAngleY = 0.0f;
+	cameraPanX = 0.0f; cameraPanY = 0.0f;
+	cameraDistance = 200.0f;
+}
 
 // Entry point of all Windows programs
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
@@ -1018,19 +1283,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wglMakeCurrent(hDC, hRC);
 
 		InitObstacles();
+		InitPoints();
+		LoadTopScores();
 
 		SetupRC();
 		BuildFont(hDC);
 
 		hButtonStart = CreateWindow(
-			"BUTTON",
-			"START",
+			"BUTTON", "START",
 			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-			0, 0, 100, 40,
-			hWnd,                       
-			(HMENU)ID_BUTTON_START,     
-			hInstance,
-			NULL);
+			0, 0, 100, 40, hWnd, (HMENU)ID_BUTTON_START, hInstance, NULL);
+
+		hEditName = CreateWindow(
+			"EDIT", "Gracz",
+			WS_CHILD | WS_VISIBLE | WS_BORDER | ES_CENTER | ES_AUTOHSCROLL,
+			0, 0, 200, 25,
+			hWnd, (HMENU)ID_EDIT_NAME, hInstance, NULL);
+
+		SendMessage(hEditName, EM_LIMITTEXT, (WPARAM)99, 0);
 
 		// Generate TWO textures
 		glGenTextures(2, texture);
@@ -1218,6 +1488,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				(winWidth - btnWidth) / 2,
 				(winHeight - btnHeight) / 2,
 				btnWidth, btnHeight, TRUE);
+
+			if (hEditName) {
+				int editWidth = 200;
+				int editHeight = 25;
+				MoveWindow(hEditName,
+					(winWidth - editWidth) / 2,
+					(winHeight - btnHeight) / 2 - 40, // 40 pikseli wyżej
+					editWidth, editHeight, TRUE);
+			}
 		}
 
 		break;
@@ -1321,6 +1600,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// Kolizja - zatrzymaj ruch w kierunku kolizji, odbij lekko
 			ufoVelX *= -0.3f;
 			ufoVelZ *= -0.3f;
+		}
+
+		for (int i = 0; i < numPoints; i++) {
+			if (points[i].active) {
+				float dx = ufoPos.x - points[i].x;
+				float dy = ufoPos.y - (points[i].y);
+				float dz = ufoPos.z - points[i].z;
+
+				float distance = sqrtf(dx * dx + dy * dy + dz * dz);
+
+				if (distance < (ufoRadius + pointRadius)) {
+					points[i].active = FALSE;
+					score++;                  
+					changed = TRUE;  
+
+					if (score >= numPoints) {
+						ULONGLONG currentTime = GetTickCount64();
+						int totalSeconds = (int)((currentTime - gameStartTime) / 1000);
+						int minutes = totalSeconds / 60;
+						int seconds = totalSeconds % 60;
+
+						SaveResults(minutes, seconds);
+						LoadTopScores();
+						char msgBuffer[256];
+						sprintf(msgBuffer, "Zebrales wszystkie punkty.\nTwoj czas: %02d:%02d\n", minutes, seconds);
+						
+						isGameRunning = FALSE;
+						ShowCursor(TRUE);
+						isCursorLocked = FALSE;
+
+						MessageBox(hWnd, msgBuffer, "GRATULACJE!", MB_OK | MB_ICONINFORMATION);
+						ShowWindow(hButtonStart, SW_SHOW);
+						ShowWindow(hEditName, SW_SHOW);
+						InvalidateRect(hWnd, NULL, FALSE);
+						return 0;
+					}
+				}
+			}
 		}
 
 		if (!keyA_held && !keyD_held) {
@@ -1492,7 +1809,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 	{
 		if (LOWORD(wParam) == ID_BUTTON_START) {
+			GetWindowText(hEditName, playerName, 100);
+			ShowWindow(hEditName, SW_HIDE);
+			
+			ResetGameVariables();
+
 			isGameRunning = TRUE;
+			gameStartTime = GetTickCount64();
 			ShowWindow(hButtonStart, SW_HIDE);
 			SetFocus(hWnd);
 

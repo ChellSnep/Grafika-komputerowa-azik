@@ -1,6 +1,9 @@
 ﻿  GL_template.cpp
-C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(284,34): warning C4267: "=": konwersja z "size_t" do "DWORD", możliwa utrata danych
-C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(331,20): warning C4267: "argument": konwersja z "size_t" do "GLsizei", możliwa utrata danych
-C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(751,23): warning C4267: "inicjowanie": konwersja z "size_t" do "int", możliwa utrata danych
-C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(752,23): warning C4267: "inicjowanie": konwersja z "size_t" do "int", możliwa utrata danych
-  Lazik.vcxproj -> C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\x64\Debug\Lazik.exe
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(369,34): warning C4267: '=': conversion from 'size_t' to 'DWORD', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(414,20): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(430,20): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(944,53): warning C4267: 'argument': conversion from 'size_t' to 'GLint', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(947,53): warning C4267: 'argument': conversion from 'size_t' to 'GLint', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(1055,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\GL_template.cpp(1063,17): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Lazik.vcxproj -> C:\Users\pet\Documents\GitHub\Grafika-komputerowa-azik\Lazik\x64\Debug\Lazik.exe
