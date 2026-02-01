@@ -1,13 +1,13 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\",
+  "WorkspaceRootPath": "C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "AbsoluteMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|solutionrelative:Lazik\\GL_template.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "AbsoluteMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{F61B4FB4-C109-45A1-8C03-91B2243C4216}|Lazik\\Lazik.vcxproj|solutionrelative:Lazik\\RESOURCE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
@@ -24,9 +24,9 @@
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "RESOURCE.H",
-              "DocumentMoniker": "C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H",
+              "DocumentMoniker": "C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H",
               "RelativeDocumentMoniker": "Lazik\\RESOURCE.H",
-              "ToolTip": "C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H",
+              "ToolTip": "C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\RESOURCE.H",
               "RelativeToolTip": "Lazik\\RESOURCE.H",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
@@ -36,9 +36,9 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "GL_template.cpp",
-              "DocumentMoniker": "C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp",
+              "DocumentMoniker": "C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp",
               "RelativeDocumentMoniker": "Lazik\\GL_template.cpp",
-              "ToolTip": "C:\\Users\\pet\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp",
+              "ToolTip": "C:\\Users\\Ermes\\Documents\\GitHub\\Grafika-komputerowa-azik\\Lazik\\Lazik\\GL_template.cpp",
               "RelativeToolTip": "Lazik\\GL_template.cpp",
               "ViewState": "AgIAAPADAAAAAAAAAAAAANwEAAACAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
