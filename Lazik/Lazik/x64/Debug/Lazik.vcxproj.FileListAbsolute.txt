@@ -1,2 +1,5 @@
 C:\Users\ikopl\source\repos\Grafika-komputerowa-lazik\Lazik\Lazik\x64\Debug\Lazik.exe
+C:\Users\przem\Downloads\Grafika-komputerowa-azik-main (1)\Grafika-komputerowa-azik-main\Lazik\Lazik\x64\Debug\Lazik.exe
+D:\Lazik\Lazik\x64\Debug\Lazik.exe
+C:\Users\Ermes\Desktop\Lazik\Lazik\x64\Debug\Lazik.exe
 C:\Users\Ermes\Documents\GitHub\Grafika-komputerowa-azik\Lazik\Lazik\x64\Debug\Lazik.exe

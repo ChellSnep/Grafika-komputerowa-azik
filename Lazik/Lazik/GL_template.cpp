@@ -25,6 +25,7 @@
 #include <math.h>				// Define for sqrt
 #include <stdio.h>
 #include "resource.h"			// About box resource identifiers.
+#include <time.h>
 
 #define glRGB(x, y, z)	glColor3ub((GLubyte)x, (GLubyte)y, (GLubyte)z)
 #define BITMAP_ID 0x4D42		// identyfikator formatu BMP
@@ -47,7 +48,7 @@ static GLsizei lastWidth;
 
 // --- Camera Variables for Orbiting/Zooming/Panning ---
 static GLfloat cameraDistance = 200.0f;
-static GLfloat cameraAngleX = 0.0f; 
+static GLfloat cameraAngleX = 0.0f;
 static GLfloat cameraAngleY = 0.0f;
 
 // Pan/Translate variables
@@ -98,6 +99,21 @@ static const GLfloat ufoMaxSpeed = 4.0f;
 static GLfloat ufoMinHeight = 10.0f;
 // --- End UFO Movement Variables ---
 
+// --- Obstacle/Collision Variables ---
+struct Obstacle {
+	GLfloat x, z;       // pozycja na płaszczyźnie XZ
+	GLfloat radius;     // promień kolizji
+	GLfloat height;     // wysokość przeszkody
+};
+
+#define OBSTACLE_COUNT 10
+
+static Obstacle obstacles[OBSTACLE_COUNT];
+static const int numObstacles = OBSTACLE_COUNT;
+
+static const GLfloat ufoRadius = 65.0f; // promień kolizji UFO
+// --- End Obstacle Variables ---
+
 static BOOL isDecorationsSpinning = TRUE;
 static BOOL keyA_held = FALSE;
 static BOOL keyD_held = FALSE;
@@ -106,8 +122,14 @@ static BOOL keyS_held = FALSE;
 static BOOL keySpacja_held = FALSE;
 static BOOL keyCTRL_held = FALSE;
 
+// --- Menu Start Variables ---
+#define ID_BUTTON_START 101
+static BOOL isGameRunning = FALSE;
+static HWND hButtonStart = NULL;
+// --- End Menu Start Variables ---
+
 // Opis tekstury
-BITMAPINFOHEADER	bitmapInfoHeader;	// nag��wek obrazu
+BITMAPINFOHEADER	bitmapInfoHeader;	// nagwek obrazu
 unsigned char* bitmapData = NULL;			// dane tekstury
 unsigned int		texture[2];			// obiekt tekstury
 
@@ -156,6 +178,32 @@ void ChangeSize(GLsizei w, GLsizei h) {
 	glLoadIdentity();
 }
 
+void InitObstacles() {
+	// Inicjalizacja generatora losowego
+	srand((unsigned int)time(NULL));
+
+	// Definiujemy promień strefy bezpiecznej wokół UFO 
+	float safeZoneRadius = 300.0f;
+
+	for (int i = 0; i < numObstacles; i++) {
+		float newX, newZ;
+		float distFromCenterSq; // Odległość od środka do kwadratu
+
+		do {
+			newX = (float)(rand() % 1400 - 700); // Zakres -700 do 700
+			newZ = (float)(rand() % 1400 - 700);
+
+			distFromCenterSq = (newX * newX) + (newZ * newZ);
+
+		} while (distFromCenterSq < (safeZoneRadius * safeZoneRadius));
+
+		obstacles[i].x = newX;
+		obstacles[i].z = newZ;
+
+		obstacles[i].radius = 40.0f + (float)(rand() % 50);
+		obstacles[i].height = 80.0f + (float)(rand() % 150);
+	}
+}
 
 // This function does any needed initialization on the rendering context.  Here it sets up and initializes the lighting for the scene.
 void SetupRC()
@@ -311,9 +359,9 @@ void Spodek(void) {
 void Spod(void) {
 	glPushMatrix();
 
-	GLfloat radius = 65.0f; 
-	GLfloat height = 3.0f; 
-	int segments = 64;      
+	GLfloat radius = 65.0f;
+	GLfloat height = 3.0f;
+	int segments = 64;
 
 	glColor3f(0.35f, 0.35f, 0.35f);
 
@@ -504,7 +552,7 @@ void UFO() {
 	glTranslatef(0.0f, -0.1f, 0.0f);
 	Spod();
 	glPopMatrix();
-	
+
 	glPushMatrix();
 	glTranslatef(0.0f, -1.0f, 0.0f);
 	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
@@ -516,12 +564,12 @@ void UFO() {
 	glRotatef(decorationRotationAngle, 0.0f, 1.0f, 0.0f);
 	SpodDek2();
 	glPopMatrix();
-	
+
 	glPushMatrix();
 	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 	Kopula();
 	glPopMatrix();
-	
+
 	glPushMatrix();
 	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 	glTranslatef(0.0f, 0.0f, -15.0f);
@@ -577,25 +625,6 @@ void UFO() {
 	glPopMatrix();
 }
 
-void DrawGrid() {
-	glPushMatrix();
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_LIGHTING);
-
-	glColor3f(0.8f, 0.8f, 0.8f);
-
-	glBegin(GL_LINES);
-	for (float i = -500; i <= 500; i += 20) {
-		glVertex3f(i, 0, -500);
-		glVertex3f(i, 0, 500);
-
-		glVertex3f(-500, 0, i);
-		glVertex3f(500, 0, i);
-	}
-	glEnd();
-	glPopMatrix();
-}
-
 void DrawTerrain() {
 	glPushMatrix();
 
@@ -617,8 +646,8 @@ void DrawTerrain() {
 	// No color tinting - let texture show through
 	glColor3f(1.0f, 1.0f, 1.0f);
 
-	for (float x = -500; x < 500; x += step) {
-		for (float z = -500; z < 500; z += step) {
+	for (float x = -800; x < 800; x += step) {
+		for (float z = -800; z < 800; z += step) {
 
 			GLfloat h1 = GetTerrainHeight(x, z);
 			GLfloat h2 = GetTerrainHeight(x + step, z);
@@ -645,6 +674,53 @@ void DrawTerrain() {
 	glPopMatrix();
 }
 
+// Funkcja sprawdzająca kolizję UFO z przeszkodami
+BOOL CheckCollision(GLfloat newX, GLfloat newY, GLfloat newZ) {
+	for (int i = 0; i < numObstacles; i++) {
+		// Sprawdź czy UFO jest poniżej wysokości przeszkody
+		if (newY < obstacles[i].height) {
+			// Oblicz odległość w płaszczyźnie XZ
+			GLfloat dx = newX - obstacles[i].x;
+			GLfloat dz = newZ - obstacles[i].z;
+			GLfloat distance = sqrtf(dx * dx + dz * dz);
+
+			// Kolizja jeśli odległość < suma promieni
+			if (distance < (ufoRadius + obstacles[i].radius)) {
+				return TRUE; // Jest kolizja
+			}
+		}
+	}
+	return FALSE; // Brak kolizji
+}
+
+// Funkcja rysująca przeszkody (cylindry)
+void DrawObstacles() {
+	glDisable(GL_TEXTURE_2D);
+
+	for (int i = 0; i < numObstacles; i++) {
+		glPushMatrix();
+		glTranslatef(obstacles[i].x, 0.0f, obstacles[i].z);
+
+		glColor3f(0.6f, 0.3f, 0.2f);
+
+		// Rysuj cylinder jako przeszkodę
+		GLUquadricObj* quadric = gluNewQuadric();
+		if (quadric) {
+			glRotatef(-90.0f, 1.0f, 0.0f, 0.0f); // Obróć by cylinder był pionowy
+			gluCylinder(quadric, obstacles[i].radius, obstacles[i].radius, obstacles[i].height, 16, 4);
+
+			// Górna pokrywa
+			glTranslatef(0.0f, 0.0f, obstacles[i].height);
+			glColor3f(0.4f, 0.2f, 0.1f);
+			gluDisk(quadric, 0, obstacles[i].radius, 16, 1);
+
+			gluDeleteQuadric(quadric);
+		}
+
+		glPopMatrix();
+	}
+}
+
 void RenderScene(void)
 {
 	// Clear the window with current clearing color
@@ -652,6 +728,48 @@ void RenderScene(void)
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	if (!isGameRunning) {
+		// Ustawienie widoku ortogonalnego dla napisów
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		gluOrtho2D(0, lastWidth, lastHeight, 0);
+		glMatrixMode(GL_MODELVIEW);
+
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_TEXTURE_2D);
+
+		// Rysowanie tytułu nad przyciskiem
+		glColor3f(0.0f, 0.0f, 0.0f); // Czarny tekst
+
+		const char* textLine1 = "Jak najszybciej zbierz wszystkie 10 gwiazdek!";
+		const char* textLine2 = "Wcisnij START aby rozpoczac";
+
+		int charWidth = 9;
+
+		int text1PixelWidth = strlen(textLine1) * charWidth;
+		int text2PixelWidth = strlen(textLine2) * charWidth;
+
+		int centerY = lastHeight / 2 - 50;
+
+		// Rysowanie pierwszego napisu (Idealnie na środku)
+		glRasterPos2i((lastWidth - text1PixelWidth) / 2, centerY);
+		glPrint(textLine1);
+
+		// Rysowanie drugiego napisu (Idealnie na środku)
+		glRasterPos2i((lastWidth - text2PixelWidth) / 2, centerY + 100);
+		glPrint(textLine2);
+
+		glEnable(GL_DEPTH_TEST);
+
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+
+		glFlush();
+		return;
+	}
 
 	// --- Camera Setup  ---
 	glTranslatef(0.0f, 0.0f, -cameraDistance);
@@ -665,6 +783,9 @@ void RenderScene(void)
 
 	// --- Draw Terrain
 	DrawTerrain();
+
+	// --- Draw Obstacles
+	DrawObstacles();
 
 	// --- Draw UFO
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // Ensure fill mode
@@ -816,61 +937,7 @@ HPALETTE GetOpenGLPalette(HDC hDC)
 // Entry point of all Windows programs
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
-	// DIAGNOSTYKA: pokaż ścieżkę, fopen, i nagłówki BMP
-	char exePath[MAX_PATH];
-	char exeDir[MAX_PATH];
-	char resourcePath[MAX_PATH];
-
-	GetModuleFileNameA(NULL, exePath, MAX_PATH);
-	strcpy_s(exeDir, MAX_PATH, exePath);
-	char* lastSlash = strrchr(exeDir, '\\');
-	if (lastSlash) *lastSlash = '\0';
-	_snprintf_s(resourcePath, MAX_PATH, _TRUNCATE, "%s\\Resources\\water.bmp", exeDir);
-
-	{
-		char msg[MAX_PATH * 2];
-		sprintf_s(msg, sizeof(msg), "Trying to load (full path):\n%s\n\nWorking directory:\n", resourcePath);
-		char cwd[MAX_PATH]; GetCurrentDirectoryA(MAX_PATH, cwd);
-		strcat_s(msg, sizeof(msg), cwd);
-		MessageBoxA(NULL, msg, "Diag: paths", MB_OK);
-	}
-
-	// fopen_s test
-	FILE* f = NULL;
-	errno_t ferr = fopen_s(&f, resourcePath, "rb");
-	if (ferr != 0 || f == NULL) {
-		char msg[200];
-		sprintf_s(msg, sizeof(msg), "fopen_s FAILED (errno = %d). File cannot be opened by this process.", ferr);
-		MessageBoxA(NULL, msg, "Diag: fopen", MB_OK | MB_ICONERROR);
-	}
-	else {
-		// if file opened, read headers
-		BITMAPFILEHEADER bf;
-		BITMAPINFOHEADER bi;
-		size_t nread = fread(&bf, 1, sizeof(bf), f);
-		nread += fread(&bi, 1, sizeof(bi), f);
-		// rewind just in case
-		fseek(f, 0, SEEK_SET);
-
-		char hdrmsg[400];
-		sprintf_s(hdrmsg, sizeof(hdrmsg),
-			"fopen_s SUCCEEDED.\n\nbfType = 0x%04X\nbfOffBits = %u\n\nbiWidth = %d\nbiHeight = %d\nbiBitCount = %u\nbiSizeImage = %u\nbiCompression = %u",
-			bf.bfType, bf.bfOffBits, bi.biWidth, bi.biHeight, bi.biBitCount, bi.biSizeImage, bi.biCompression);
-
-		MessageBoxA(NULL, hdrmsg, "Diag: BMP header", MB_OK);
-
-		fclose(f);
-	}
-
-	// Teraz spróbuj załadować normalnie i pokaż czy LoadBitmapFile zwróci NULL
-	unsigned char* testBitmap = LoadBitmapFile(resourcePath, &bitmapInfoHeader);
-	if (testBitmap == NULL) {
-		MessageBoxA(NULL, "LoadBitmapFile returned NULL (wczytywanie nie powiodło się).", "Diag: loader", MB_OK | MB_ICONERROR);
-	}
-	else {
-		MessageBoxA(NULL, "LoadBitmapFile SUCCEEDED.", "Diag: loader", MB_OK);
-		free(testBitmap);
-	}
+	// Usunięto blok diagnostyczny (MessageBoxy na starcie)
 
 	MSG msg;			// Windows message structure
 	WNDCLASS wc;		// Windows class structure
@@ -918,7 +985,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,
 		return FALSE;
 
 
-	ShowWindow(hWnd, nCmdShow);
+	ShowWindow(hWnd, SW_SHOWMAXIMIZED);
 	UpdateWindow(hWnd);
 
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -950,8 +1017,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		hRC = wglCreateContext(hDC);
 		wglMakeCurrent(hDC, hRC);
 
+		InitObstacles();
+
 		SetupRC();
 		BuildFont(hDC);
+
+		hButtonStart = CreateWindow(
+			"BUTTON",
+			"START",
+			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+			0, 0, 100, 40,
+			hWnd,                       
+			(HMENU)ID_BUTTON_START,     
+			hInstance,
+			NULL);
 
 		// Generate TWO textures
 		glGenTextures(2, texture);
@@ -966,7 +1045,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-			// <- WAŻNE: wyrównanie
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			if (bitmapInfoHeader.biBitCount == 24) {
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
@@ -982,12 +1060,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			free(bitmapData);
 			bitmapData = NULL;
 
-			MessageBoxA(NULL, "water.bmp loaded successfully!", "Success", MB_OK);
 		}
 		else
 		{
-			MessageBoxA(NULL, "water.bmp NOT FOUND! Using fallback texture.", "Warning", MB_OK);
-			// Create fallback blue checkerboard texture
 			const int size = 64;
 			unsigned char* checkerboard = (unsigned char*)malloc(size * size * 3);
 			for (int i = 0; i < size; i++) {
@@ -1080,29 +1155,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Złóż ścieżkę do Resources\water.bmp obok exe
 		_snprintf_s(resourcePath, MAX_PATH, _TRUNCATE, "%s\\Resources\\water.bmp", exeDir);
 
-		// Pokaż ścieżkę w okienku — ułatwia debug
-		MessageBoxA(NULL, resourcePath, "Trying to load (full path)", MB_OK);
-
-		// Dodatkowy test: czy plik w ogóle istnieje (fopen)
 		FILE* ftest = fopen(resourcePath, "rb");
 		if (ftest) {
 			fclose(ftest);
 		}
 		else {
-			// Jeśli nie istnieje, pokaż też bieżący katalog roboczy procesu
 			char cwd[MAX_PATH];
 			GetCurrentDirectoryA(MAX_PATH, cwd);
 			char msg[MAX_PATH * 2];
 			_snprintf_s(msg, sizeof(msg), _TRUNCATE,
 				"File not found at:\n%s\n\nCurrent working directory:\n%s",
 				resourcePath, cwd);
-			MessageBoxA(NULL, msg, "File NOT FOUND", MB_OK | MB_ICONWARNING);
 		}
 
-		// Teraz używamy resourcePath do załadowania bitmapy
 		bitmapData = LoadBitmapFile(resourcePath, &bitmapInfoHeader);
 		if (bitmapData) {
-			// ... (twój istniejący kod inicjujący teksturę)
 			glBindTexture(GL_TEXTURE_2D, texture[0]);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -1117,13 +1184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			free(bitmapData);
 			bitmapData = NULL;
-			MessageBoxA(NULL, "water.bmp loaded successfully!", "Success", MB_OK);
 		}
-		else {
-			MessageBoxA(NULL, "water.bmp NOT FOUND at resourcePath! Using fallback texture.", "Warning", MB_OK);
-			// ... (twój fallback checkerboard)
-		}
-		// --- End: debug i bezpieczne ładowanie tekstury water.bmp ---
 
 
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -1146,6 +1207,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		ChangeSize(LOWORD(lParam), HIWORD(lParam));
+
+		if (hButtonStart) {
+			int winWidth = LOWORD(lParam);
+			int winHeight = HIWORD(lParam);
+			int btnWidth = 100;
+			int btnHeight = 40;
+
+			MoveWindow(hButtonStart,
+				(winWidth - btnWidth) / 2,
+				(winHeight - btnHeight) / 2,
+				btnWidth, btnHeight, TRUE);
+		}
+
 		break;
 
 	case WM_PAINT:
@@ -1177,6 +1251,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_TIMER:
 	{
+		if (!isGameRunning) return 0;
+
 		BOOL changed = FALSE;
 
 		if (isDecorationsSpinning) {
@@ -1195,11 +1271,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ufoVelY = 0;
 		}
 
-		if (ufoPos.y < ufoMinHeight) {
-			ufoPos.y = ufoMinHeight;
-			ufoVelY = 0;
-		}
-
 		if (keyA_held) {
 			ufoVelX -= acceleration;
 			steeringAngle += steeringSpeed * 0.1f;
@@ -1208,7 +1279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ufoVelX += acceleration;
 			steeringAngle -= steeringSpeed * 0.1f;
 		}
-		
+
 		if (keyW_held) {
 			ufoVelZ -= acceleration;
 			pitchAngle -= steeringSpeed * 0.1f;
@@ -1235,9 +1306,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		steeringAngle += (targetSteer - steeringAngle) * tiltSmoothing;
 		pitchAngle += (targetPitch - pitchAngle) * tiltSmoothing;
 
-		ufoPos.x += ufoVelX;
-		ufoPos.y += ufoVelY;
-		ufoPos.z += ufoVelZ;
+		// Sprawdź kolizję przed aktualizacją pozycji
+		GLfloat newX = ufoPos.x + ufoVelX;
+		GLfloat newY = ufoPos.y + ufoVelY;
+		GLfloat newZ = ufoPos.z + ufoVelZ;
+
+		if (!CheckCollision(newX, newY, newZ)) {
+			// Brak kolizji - aktualizuj pozycję
+			ufoPos.x = newX;
+			ufoPos.y = newY;
+			ufoPos.z = newZ;
+		}
+		else {
+			// Kolizja - zatrzymaj ruch w kierunku kolizji, odbij lekko
+			ufoVelX *= -0.3f;
+			ufoVelZ *= -0.3f;
+		}
 
 		if (!keyA_held && !keyD_held) {
 			steeringAngle *= 0.9f;
@@ -1278,12 +1362,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_KEYDOWN:
 	{
+		if (!isGameRunning) return 0;
+
 		BOOL changed = FALSE;
 
-		if (wParam == VK_TAB) { 
-			isCursorLocked = !isCursorLocked; 
-			ShowCursor(!isCursorLocked); 
-		
+		if (wParam == VK_TAB) {
+			isCursorLocked = !isCursorLocked;
+			ShowCursor(!isCursorLocked);
+
 			if (isCursorLocked) isFirstMouse = TRUE;
 		}
 
@@ -1325,6 +1411,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_MOUSEMOVE:
 	{
+		if (!isGameRunning) return 0;
+
 		if (isCursorLocked)
 		{
 			RECT rect;
@@ -1403,6 +1491,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_COMMAND:
 	{
+		if (LOWORD(wParam) == ID_BUTTON_START) {
+			isGameRunning = TRUE;
+			ShowWindow(hButtonStart, SW_HIDE);
+			SetFocus(hWnd);
+
+			if (isCursorLocked) {
+				ShowCursor(FALSE);
+				isFirstMouse = TRUE;
+			}
+			return 0;
+		}
+
 		switch (LOWORD(wParam))
 		{
 		case ID_FILE_EXIT:
